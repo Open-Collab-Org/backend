@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: golangci-lint
         name: golangci-lint
-        entry: golangci-lint run --fix
+        entry: golangci-lint run --fix ./***/*.go
         language: golang
         types: [go]
