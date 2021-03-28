@@ -38,6 +38,7 @@ type routeHandler = func(*gin.Context, *gorm.DB) error
 // Sets up all routes in the application.
 func setupRoutes(server *gin.Engine, db *gorm.DB) {
 	server.POST("/users", createRouteHandler(users.RouteRegisterUser, db))
+	server.POST("/login", createRouteHandler(users.RouteAuthenticateUser, db))
 }
 
 // This method is used to create gin route handlers with a few conveniences.
