@@ -1,3 +1,3 @@
 FROM postgres
 
-COPY ./migrations /docker-entrypoint-initdb.d
+#COPY src/migrations /docker-entrypoint-initdb.d

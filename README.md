@@ -16,7 +16,22 @@ pip install pre-commit && pre-commit install
 4. Install [`docker-compose`](https://docs.docker.com/compose/install/#install-compose-on-linux-systems)
 
 
-
-
 > **Tip:** Install the Go Linter plugin for GoLand/VSCode
 
+
+## Running the project
+
+To start the database:
+```
+docker-compose up -d
+```
+
+To stop the database:
+```
+docker-compose down
+```
+
+To run the server:
+```
+go run src/main.go
+```
