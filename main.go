@@ -3,9 +3,8 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/open-collaboration/server/dtos"
 	"github.com/open-collaboration/server/migrations"
-	"github.com/open-collaboration/server/models"
+	"github.com/open-collaboration/server/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"net/http"
@@ -38,7 +37,7 @@ type routeHandler = func(*gin.Context, *gorm.DB) error
 
 // Sets up all routes in the application.
 func setupRoutes(server *gin.Engine, db *gorm.DB) {
-	server.POST("/users", createRouteHandler(registerUser, db))
+	server.POST("/users", createRouteHandler(users.RouteRegisterUser, db))
 }
 
 // This method is used to create gin route handlers with a few conveniences.
@@ -59,25 +58,4 @@ func createRouteHandler(handler routeHandler, db *gorm.DB) func(*gin.Context) {
 			}
 		}
 	}
-}
-
-
-// Registers a user.
-// Accepts a dtos.NewUserDto as body.
-func registerUser(c *gin.Context, db *gorm.DB) error {
-	newUser := dtos.NewUserDto{}
-	err := c.ShouldBind(&newUser)
-
-	if err != nil {
-		return err
-	}
-
-	err = models.CreateUser(db, newUser)
-	if err != nil {
-		return err
-	}
-
-	c.Status(201)
-
-	return nil
 }

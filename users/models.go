@@ -1,8 +1,7 @@
-package models
+package users
 
 import (
 	"errors"
-	"github.com/open-collaboration/server/dtos"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -37,21 +36,4 @@ func (user *User) ComparePassword(plainTextPassword string) (bool, error) {
 	} else {
 		return true, nil
 	}
-}
-
-
-func CreateUser(db *gorm.DB, newUser dtos.NewUserDto) error {
-	user := User{
-		Username: newUser.Username,
-		Email:    newUser.Email,
-	}
-
-	err := user.SetPassword(newUser.Password)
-	if err != nil {
-		return err
-	}
-
-	db.Create(&user)
-
-	return nil
 }
