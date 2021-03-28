@@ -33,5 +33,31 @@ docker-compose down
 
 To run the server:
 ```
-go run src/main.go
+go run .
 ```
+
+## Contribution guidelines
+
+### Modifying the database's schema
+To modify the database's schema, you should create a migration in the [`migrations` package](./migrations).
+Do not delete or modify existing migrations in `migrations.go`, only add more migrations to it with an increasing
+id.
+
+### Creating routes
+Don't create gin routes with "pure" gin route handlers (functions with the signature `func(*gin.Context)`), instead
+use the `createRouteHandler` method, which will be able to provide your handler with a database connection and
+automatic error handling.
+
+### Globals
+Don't use globals. Ever. They make it harder to test the code. Instead, use depencency injection.
+
+In a nutshell, dependency injection basically means receiving all of a method's *dependencies* (e.g. database connections
+like `*gorm.DB`) as parameters. This way the caller of the function has to provide it with its dependencies and testing
+the function later on is easier, we just have to pass it mocked or real dependencies as parameters, no need to fiddle
+around with singletons and globals and whatnot.
+
+### DTOs
+Use DTOs (Data Transfer Objects) to send and receive data on routes. DTOs are basically just plain structs with
+fields and field tags for validation (take a look at `NewUserDto`).
+
+

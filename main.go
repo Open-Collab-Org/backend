@@ -17,52 +17,67 @@ func main() {
 	dsn := "host=localhost user=root password=changeme dbname=opencollab port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	migration := migrations.GetMigration(db)
 	err = migration.Migrate()
 	if err != nil {
-		return
+		panic(err)
 	}
 
 	setupRoutes(server, db)
 
 	err = server.Run()
 	if err != nil {
-		return
+		panic(err)
 	}
 }
 
+type routeHandler = func(*gin.Context, *gorm.DB) error
+
+// Sets up all routes in the application.
 func setupRoutes(server *gin.Engine, db *gorm.DB) {
-	server.POST("/users", func(c *gin.Context) {
-		registerUser(c, db)
-	})
+	server.POST("/users", createRouteHandler(registerUser, db))
 }
 
-func registerUser(c *gin.Context, db *gorm.DB) {
+// This method is used to create gin route handlers with a few conveniences.
+// It returns a gin route handler that calls the handler you supplied with a
+// database reference and automatic error handling. All you have to do is
+// supply a routeHandler and the rest will be taken care of for you.
+func createRouteHandler(handler routeHandler, db *gorm.DB) func(*gin.Context) {
+	return func(c *gin.Context) {
+		err := handler(c, db)
+		if err != nil {
+			ginErr, isGinErr := err.(gin.Error)
+			_, isValidationErr := err.(validator.ValidationErrors)
+
+			if isValidationErr || (isGinErr && ginErr.IsType(gin.ErrorTypeBind)) {
+				c.AbortWithStatus(http.StatusBadRequest)
+			} else {
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}
+		}
+	}
+}
+
+
+// Registers a user.
+// Accepts a dtos.NewUserDto as body.
+func registerUser(c *gin.Context, db *gorm.DB) error {
 	newUser := dtos.NewUserDto{}
 	err := c.ShouldBind(&newUser)
 
 	if err != nil {
-		ginErr, isGinErr := err.(gin.Error)
-		_, isValidationErr := err.(validator.ValidationErrors)
-
-		if isValidationErr || (isGinErr && ginErr.IsType(gin.ErrorTypeBind)) {
-			c.AbortWithStatus(http.StatusBadRequest)
-		} else {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-
-		return
+		return err
 	}
 
 	err = models.CreateUser(db, newUser)
 	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-
-		return
+		return err
 	}
 
 	c.Status(201)
+
+	return nil
 }
