@@ -8,19 +8,19 @@ import (
 // Registers a user.
 // Accepts a dtos.NewUserDto as body.
 func RouteRegisterUser(c *gin.Context, db *gorm.DB) error {
-newUser := NewUserDto{}
-err := c.ShouldBind(&newUser)
+	newUser := NewUserDto{}
+	err := c.ShouldBind(&newUser)
 
-if err != nil {
-return err
-}
+	if err != nil {
+		return err
+	}
 
-err = CreateUser(db, newUser)
-if err != nil {
-return err
-}
+	err = CreateUser(db, newUser)
+	if err != nil {
+		return err
+	}
 
-c.Status(201)
+	c.Status(201)
 
-return nil
+	return nil
 }

@@ -6,12 +6,12 @@ import (
 )
 
 var usersTable = gormigrate.Migration{
-	ID:       "0",
+	ID: "0",
 	Migrate: func(db *gorm.DB) error {
 		type User struct {
 			gorm.Model
-			Username string
-			Email string
+			Username     string
+			Email        string
 			PasswordHash string
 		}
 
@@ -23,7 +23,7 @@ var usersTable = gormigrate.Migration{
 }
 
 func GetMigration(db *gorm.DB) *gormigrate.Gormigrate {
-	return gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration {
+	return gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		&usersTable,
 	})
 }
