@@ -50,7 +50,7 @@ func AuthenticateUser(db *gorm.DB, authUser LoginDto) (*User, error) {
 	result := db.
 		Where("username = ?", authUser.UsernameOrEmail).
 		Or("email = ?", authUser.UsernameOrEmail).
-		Find(user)
+		First(user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
