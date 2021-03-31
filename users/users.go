@@ -39,7 +39,10 @@ func CreateUser(db *gorm.DB, newUser NewUserDto) error {
 		return err
 	}
 
-	db.Create(&user)
+	result := db.Create(&user)
+	if result.Error != nil {
+		return result.Error
+	}
 
 	return nil
 }

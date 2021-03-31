@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/open-collaboration/server/migrations"
+	"github.com/open-collaboration/server/projects"
 	"github.com/open-collaboration/server/users"
 	apex_gin "github.com/thedanielforum/apex-gin"
 	"gorm.io/driver/postgres"
@@ -15,6 +16,11 @@ import (
 	"net/http"
 	"os"
 )
+
+type ErrorDto struct {
+	ErrorCode    string      `json:"errorCode"`
+	ErrorDetails interface{} `json:"errorDetails"`
+}
 
 func main() {
 
@@ -68,6 +74,7 @@ type routeHandler = func(*gin.Context, *gorm.DB) error
 func setupRoutes(server *gin.Engine, db *gorm.DB) {
 	server.POST("/users", createRouteHandler(users.RouteRegisterUser, db))
 	server.POST("/login", createRouteHandler(users.RouteAuthenticateUser, db))
+	server.POST("/projects", createRouteHandler(projects.RouteCreateProject, db))
 }
 
 // This method is used to create gin route handlers with a few conveniences.
@@ -79,10 +86,19 @@ func createRouteHandler(handler routeHandler, db *gorm.DB) func(*gin.Context) {
 		err := handler(c, db)
 		if err != nil {
 			ginErr, isGinErr := err.(gin.Error)
-			_, isValidationErr := err.(validator.ValidationErrors)
+			validationErr, isValidationErr := err.(validator.ValidationErrors)
 
 			if isValidationErr || (isGinErr && ginErr.IsType(gin.ErrorTypeBind)) {
-				c.AbortWithStatus(http.StatusBadRequest)
+				errorsMap := make(map[string]string)
+
+				for _, fieldErr := range validationErr {
+					errorsMap[fieldErr.Field()] = fieldErr.Tag() + "=" + fieldErr.Param()
+				}
+
+				c.JSON(http.StatusBadRequest, &ErrorDto{
+					ErrorCode:    "validation-error",
+					ErrorDetails: interface{}(errorsMap),
+				})
 			} else {
 				log.WithError(err).Error("Internal Error")
 				c.AbortWithStatus(http.StatusInternalServerError)
