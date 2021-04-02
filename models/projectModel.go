@@ -1,4 +1,4 @@
-package projects
+package models
 
 import (
 	"github.com/lib/pq"
@@ -14,13 +14,4 @@ type Project struct {
 	ShortDescription string
 	GithubLink       string
 	LinkUid          int `gorm:"autoIncrement"`
-}
-
-func (project *Project) GetSummary() ProjectSummaryDto {
-	return ProjectSummaryDto{
-		Name:             project.Name,
-		Tags:             project.Tags,
-		ShortDescription: project.ShortDescription,
-		LinkUid:          project.LinkUid,
-	}
 }
