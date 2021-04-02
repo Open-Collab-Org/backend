@@ -1,6 +1,9 @@
 package projects
 
-import "gorm.io/gorm"
+import (
+	"github.com/lib/pq"
+	"gorm.io/gorm"
+)
 
 type NewProjectDto struct {
 	Name             string   `json:"name" binding:"required,min=4,max=32"`
@@ -11,10 +14,11 @@ type NewProjectDto struct {
 }
 
 type ProjectSummaryDto struct {
-	Name             string   `json:"name" binding:"required"`
-	Tags             []string `json:"tags" binding:"required"`
-	ShortDescription string   `json:"shortDescription" binding:"required"`
-	LinkUid          int      `json:"linkUid" binding:""`
+	Name             string         `json:"name" binding:"required"`
+	Tags             pq.StringArray `json:"tags" binding:"required" gorm:"type: TEXT[]"`
+	ShortDescription string         `json:"shortDescription" binding:"required"`
+	LinkUid          int            `json:"linkUid" binding:""`
+	Skills           pq.StringArray `json:"skills" binding:"required" gorm:"type: TEXT[]"`
 }
 
 func CreateProject(db *gorm.DB, newProject NewProjectDto) (*Project, error) {

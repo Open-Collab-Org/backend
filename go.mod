@@ -8,6 +8,7 @@ require (
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
+	github.com/go-gorp/gorp v2.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/protobuf v1.5.1 // indirect
 	github.com/joho/godotenv v1.3.0
@@ -20,8 +21,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/poy/onpar v1.1.2 // indirect
 	github.com/thedanielforum/apex-gin v0.0.0-20180128111732-3b85937d2b3b
 	github.com/ugorji/go v1.2.4 // indirect
+	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sys v0.0.0-20210326220804-49726bf1d181 // indirect
 	golang.org/x/text v0.3.5 // indirect
