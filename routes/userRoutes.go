@@ -1,23 +1,24 @@
-package users
+package routes
 
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/open-collaboration/server/dtos"
+	"github.com/open-collaboration/server/services"
 	"os"
 )
 
 // Registers a user.
-// Accepts a dtos.NewUserDto as body.
-func RouteRegisterUser(c *gin.Context, db *gorm.DB) error {
-	newUser := NewUserDto{}
+// Accepts a dtos.NewUserDto as Json.
+func RouteRegisterUser(c *gin.Context, usersService *services.UsersService) error {
+	newUser := dtos.NewUserDto{}
 	err := c.ShouldBind(&newUser)
 
 	if err != nil {
 		return err
 	}
 
-	err = CreateUser(db, newUser)
+	err = usersService.CreateUser(c, newUser)
 	if err != nil {
 		return err
 	}
@@ -27,15 +28,15 @@ func RouteRegisterUser(c *gin.Context, db *gorm.DB) error {
 	return nil
 }
 
-func RouteAuthenticateUser(c *gin.Context, db *gorm.DB) error {
-	authUser := LoginDto{}
+func RouteAuthenticateUser(c *gin.Context, usersService *services.UsersService) error {
+	authUser := dtos.LoginDto{}
 	err := c.ShouldBind(&authUser)
 
 	if err != nil {
 		return err
 	}
 
-	user, err := AuthenticateUser(db, authUser)
+	user, err := usersService.AuthenticateUser(c, authUser)
 	if err != nil {
 		return err
 	}
@@ -50,9 +51,9 @@ func RouteAuthenticateUser(c *gin.Context, db *gorm.DB) error {
 			return err
 		}
 
-		authenticatedUser := AuthenticatedUserDto{
+		authenticatedUser := dtos.AuthenticatedUserDto{
 			Token: token,
-			User: UserDataDto{
+			User: dtos.UserDataDto{
 				Username: user.Username,
 				Email:    user.Email,
 			},
