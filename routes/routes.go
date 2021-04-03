@@ -19,6 +19,15 @@ type RouteResponse struct {
 
 // Sets up all routes in the application.
 func SetupRoutes(server *gin.Engine, providers []interface{}) {
+	for _, provider := range providers {
+		providerType := reflect.TypeOf(provider)
+		if providerType.Kind() != reflect.Ptr {
+			log.
+				WithField("provider", providerType.Name()).
+				Warn("By-value provider detected, this is allowed but not recommended. Consider passing the provider as a pointer.")
+		}
+	}
+
 	server.POST("/users", createRouteHandler(RouteRegisterUser, providers))
 	server.POST("/login", createRouteHandler(RouteAuthenticateUser, providers))
 	server.POST("/projects", createRouteHandler(RouteCreateProject, providers))
@@ -87,7 +96,7 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 
 		// We know the returned value is error because we checked it earlier
 		if !returnValues[0].IsNil() {
-			routeErr = returnValues[1].Interface().(error)
+			routeErr = returnValues[0].Interface().(error)
 		}
 
 		// Handle the error returned by the handler, if any

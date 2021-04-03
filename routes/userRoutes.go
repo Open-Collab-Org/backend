@@ -18,7 +18,7 @@ func RouteRegisterUser(c *gin.Context, usersService *services.UsersService) erro
 		return err
 	}
 
-	err = usersService.CreateUser(newUser)
+	err = usersService.CreateUser(c, newUser)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func RouteAuthenticateUser(c *gin.Context, usersService *services.UsersService) 
 		return err
 	}
 
-	user, err := usersService.AuthenticateUser(authUser)
+	user, err := usersService.AuthenticateUser(c, authUser)
 	if err != nil {
 		return err
 	}

@@ -6,10 +6,10 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/open-collaboration/server/logging"
 	"github.com/open-collaboration/server/migrations"
 	"github.com/open-collaboration/server/routes"
 	"github.com/open-collaboration/server/services"
-	apex_gin "github.com/thedanielforum/apex-gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
@@ -17,9 +17,9 @@ import (
 
 func main() {
 
-	// Setup logger
-	log.SetHandler(cli.New(os.Stdout))
+	// Setup logging
 	log.SetLevel(log.DebugLevel)
+	log.SetHandler(cli.New(os.Stdout))
 
 	// Load env variables
 	err := godotenv.Load()
@@ -47,14 +47,16 @@ func main() {
 	// Setup server
 	server := gin.New()
 
+	server.Use(gin.Recovery())
+	server.Use(logging.LoggerMiddleware)
 	server.Use(cors.Default())
-	server.Use(apex_gin.Handler("request"))
 
-	providers := make([]interface{}, 0)
-	providers = append(providers, &services.UsersService{Db: db})
-	providers = append(providers, &services.ProjectsService{Db: db})
+	providers := []interface{}{
+		&services.UsersService{Db: db},
+		&services.ProjectsService{Db: db},
+	}
 
-	routes.SetupRoutes(server, providers)
+	routes.SetupRoutes(server, providers[:])
 
 	// Start server
 	addr := os.Getenv("HOST")
