@@ -53,8 +53,6 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 	checkReturnTypes(handlerType, handlerName)
 
 	return func(c *gin.Context) {
-		providers = append(providers, c)
-
 		// Populate two arrays with the underlying types of each value in providers
 		// and whether that value is a pointer or not.
 		providerTypes := make([]reflect.Type, len(providers))
@@ -74,6 +72,14 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 		handlerArgs := make([]reflect.Value, handlerParamCount)
 		for i := 0; i < handlerParamCount; i++ {
 			paramType, isPtr := getType(handlerType.In(i))
+
+			if paramType == reflect.TypeOf(gin.Context{}) {
+				if isPtr {
+					handlerArgs[i] = reflect.ValueOf(c)
+				} else {
+					panic(fmt.Sprintf("Handler %s should receive a *gin.Context as parameter, not a gin.Context", handlerName))
+				}
+			}
 
 			for providerIdx, provider := range providers {
 				// Check if param and provider are of the same type
