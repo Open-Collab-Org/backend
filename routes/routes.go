@@ -31,7 +31,7 @@ func SetupRoutes(server *gin.Engine, providers []interface{}) {
 	server.POST("/users", createRouteHandler(RouteRegisterUser, providers))
 	server.POST("/login", createRouteHandler(RouteAuthenticateUser, providers))
 	server.POST("/projects", createRouteHandler(RouteCreateProject, providers))
-	server.GET("/projects", createRouteHandler(RouteFetchProjects, providers))
+	server.GET("/projects", createRouteHandler(RouteListProjects, providers))
 }
 
 // This method is used to create gin route handlers with a few conveniences.

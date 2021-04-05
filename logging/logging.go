@@ -9,12 +9,12 @@ import (
 )
 
 func LoggerFromCtx(ctx context.Context) *log.Entry {
-	logger := ctx.Value(consts.LoggerKey).(*log.Entry)
+	logger := ctx.Value(consts.LoggerKey)
 	if logger == nil {
 		logger = log.Log.WithFields(log.Fields{})
 	}
 
-	return logger
+	return logger.(*log.Entry)
 }
 
 func LoggerMiddleware(c *gin.Context) {

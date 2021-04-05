@@ -1,10 +1,11 @@
 package routes
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/models"
 	"github.com/open-collaboration/server/services"
+	"strconv"
 )
 
 func RouteCreateProject(c *gin.Context, projectsService *services.ProjectsService) error {
@@ -26,17 +27,29 @@ func RouteCreateProject(c *gin.Context, projectsService *services.ProjectsServic
 	return nil
 }
 
-func RouteFetchProjects(c *gin.Context, projectsService *services.ProjectsService) error {
-	projectSummaries := make([]dtos.ProjectSummaryDto, 20)
-	result := projectsService.Db.
-		Model(&models.Project{}).
-		Select("name", "tags", "short_description", "link_uid").
-		Order("created_at desc").
-		Limit(20).
-		Find(&projectSummaries)
+func RouteListProjects(c *gin.Context, projectsService *services.ProjectsService) error {
+	queryParams := &dtos.ListProjectsParamsDto{}
+	err := c.ShouldBindQuery(queryParams)
+	if err != nil {
+		if errors.Is(err, strconv.ErrSyntax) || errors.Is(err, strconv.ErrRange) {
+			c.Status(400)
 
-	if result.Error != nil {
-		return result.Error
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	// TODO: move hardcoded maximum and default page size values to
+	// 	an env variable
+	if queryParams.PageSize == 0 || queryParams.PageSize > 20 {
+		queryParams.PageSize = 20
+	}
+
+	projectSummaries, err := projectsService.ListProjects(c, queryParams.PageSize, queryParams.PageOffset, []string{}, []string{})
+
+	if err != nil {
+		return err
 	}
 
 	c.JSON(200, projectSummaries)
