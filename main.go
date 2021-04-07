@@ -3,15 +3,14 @@ package main
 import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"github.com/open-collaboration/server/logging"
 	"github.com/open-collaboration/server/migrations"
 	"github.com/open-collaboration/server/routes"
 	"github.com/open-collaboration/server/services"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"net/http"
 	"os"
 )
 
@@ -45,22 +44,29 @@ func main() {
 	}
 
 	// Setup server
-	server := gin.New()
-
-	server.Use(gin.Recovery())
-	server.Use(logging.LoggerMiddleware)
-	server.Use(cors.Default())
-
 	providers := []interface{}{
 		&services.UsersService{Db: db},
 		&services.ProjectsService{Db: db},
 	}
 
-	routes.SetupRoutes(server, providers[:])
+	router := mux.NewRouter()
+
+	routes.SetupRoutes(router, providers[:])
+
+	addr := os.Getenv("HOST")
+	server := &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
+
+	/*
+		server.Use(gin.Recovery())
+		server.Use(logging.LoggerMiddleware)
+		server.Use(cors.Default())
+	*/
 
 	// Start server
-	addr := os.Getenv("HOST")
-	err = server.Run(addr)
+	err = server.ListenAndServe()
 	if err != nil {
 		log.WithError(err).Error("Failed to start the server.")
 		panic(err)

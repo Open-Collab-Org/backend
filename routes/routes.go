@@ -5,7 +5,7 @@ import (
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/open-collaboration/server/dtos"
+	"github.com/gorilla/mux"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -18,7 +18,7 @@ type RouteResponse struct {
 }
 
 // Sets up all routes in the application.
-func SetupRoutes(server *gin.Engine, providers []interface{}) {
+func SetupRoutes(router *mux.Router, providers []interface{}) {
 	for _, provider := range providers {
 		providerType := reflect.TypeOf(provider)
 		if providerType.Kind() != reflect.Ptr {
@@ -28,17 +28,19 @@ func SetupRoutes(server *gin.Engine, providers []interface{}) {
 		}
 	}
 
-	server.POST("/users", createRouteHandler(RouteRegisterUser, providers))
-	server.POST("/login", createRouteHandler(RouteAuthenticateUser, providers))
-	server.POST("/projects", createRouteHandler(RouteCreateProject, providers))
-	server.GET("/projects", createRouteHandler(RouteListProjects, providers))
+	/*
+		router.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
+		router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
+		router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
+	*/
+	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
 }
 
 // This method is used to create gin route handlers with a few conveniences.
 // It returns a gin route handler that calls the handler you supplied with a
 // database reference and automatic error handling. All you have to do is
 // supply a routeHandler and the rest will be taken care of for you.
-func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.Context) {
+func createRouteHandler(handler interface{}, providers []interface{}) func(http.ResponseWriter, *http.Request) {
 
 	handlerType := reflect.TypeOf(handler)
 	if handlerType.Kind() != reflect.Func {
@@ -52,7 +54,7 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 
 	checkReturnTypes(handlerType, handlerName)
 
-	return func(c *gin.Context) {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		// Populate two arrays with the underlying types of each value in providers
 		// and whether that value is a pointer or not.
 		providerTypes := make([]reflect.Type, len(providers))
@@ -73,12 +75,24 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 		for i := 0; i < handlerParamCount; i++ {
 			paramType, isPtr := getType(handlerType.In(i))
 
-			if paramType == reflect.TypeOf(gin.Context{}) {
+			if paramType.Implements(reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()) {
 				if isPtr {
-					handlerArgs[i] = reflect.ValueOf(c)
+					panic(fmt.Sprintf("Handler %s: Cannot pass *http.ResponseWriter (pointer). Use http.Request (value) instead.", handlerName))
 				} else {
-					panic(fmt.Sprintf("Handler %s should receive a *gin.Context as parameter, not a gin.Context", handlerName))
+					handlerArgs[i] = reflect.ValueOf(writer)
 				}
+
+				continue
+			}
+
+			if paramType == reflect.TypeOf(http.Request{}) {
+				if isPtr {
+					handlerArgs[i] = reflect.ValueOf(request)
+				} else {
+					panic(fmt.Sprintf("Handler %s: Cannot pass http.Request (value). Use *http.Request (pointer) instead.", handlerName))
+				}
+
+				continue
 			}
 
 			for providerIdx, provider := range providers {
@@ -117,13 +131,13 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(*gin.
 					errorsMap[fieldErr.Field()] = fieldErr.Tag() + "=" + fieldErr.Param()
 				}
 
-				c.JSON(http.StatusBadRequest, &dtos.ErrorDto{
+				/*c.JSON(http.StatusBadRequest, &dtos.ErrorDto{
 					ErrorCode:    "validation-error",
 					ErrorDetails: interface{}(errorsMap),
-				})
+				})*/
 			} else {
 				log.WithError(routeErr).Error("Internal Error")
-				c.AbortWithStatus(http.StatusInternalServerError)
+				/*c.AbortWithStatus(http.StatusInternalServerError)*/
 			}
 		}
 	}
