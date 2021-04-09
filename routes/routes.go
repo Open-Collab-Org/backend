@@ -1,11 +1,13 @@
 package routes
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/apex/log"
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
+	"github.com/open-collaboration/server/httpUtils"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -28,12 +30,16 @@ func SetupRoutes(router *mux.Router, providers []interface{}) {
 		}
 	}
 
-	/*
-		router.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
-		router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
-		router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
-	*/
+	router.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
+	router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
+	router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
+
+	err := router.Walk(logRoute)
+	if err != nil {
+		log.WithError(err).Error("Failed to log routes")
+		panic("Failed to log routes")
+	}
 }
 
 // This method is used to create gin route handlers with a few conveniences.
@@ -110,6 +116,20 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 			}
 		}
 
+		ctx := context.Background()
+		requestId, err := uuid.NewV4()
+		if err != nil {
+			log.WithError(err).Error("Failed to generate a request id.")
+			writer.WriteHeader(500)
+
+			return
+		}
+
+		logger := log.WithFields(log.Fields{
+			"requestId": requestId,
+		})
+		log.NewContext(ctx, logger)
+
 		// Call the handler
 		returnValues := reflect.ValueOf(handler).Call(handlerArgs)
 		var routeErr error = nil
@@ -121,24 +141,7 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 
 		// Handle the error returned by the handler, if any
 		if routeErr != nil {
-			ginErr, isGinErr := routeErr.(gin.Error)
-			validationErr, isValidationErr := routeErr.(validator.ValidationErrors)
-
-			if isValidationErr || (isGinErr && ginErr.IsType(gin.ErrorTypeBind)) {
-				errorsMap := make(map[string]string)
-
-				for _, fieldErr := range validationErr {
-					errorsMap[fieldErr.Field()] = fieldErr.Tag() + "=" + fieldErr.Param()
-				}
-
-				/*c.JSON(http.StatusBadRequest, &dtos.ErrorDto{
-					ErrorCode:    "validation-error",
-					ErrorDetails: interface{}(errorsMap),
-				})*/
-			} else {
-				log.WithError(routeErr).Error("Internal Error")
-				/*c.AbortWithStatus(http.StatusInternalServerError)*/
-			}
+			handleRouteError(writer, ctx, routeErr)
 		}
 	}
 }
@@ -169,4 +172,49 @@ func checkReturnTypes(handlerType reflect.Type, handlerName string) {
 	if firstRetVal != reflect.TypeOf((*error)(nil)).Elem() {
 		panic(msg)
 	}
+}
+
+func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr error) {
+	logger := log.FromContext(ctx)
+
+	code := "unknown-error"
+	details := map[string]interface{}{}
+
+	switch e := routeErr.(type) {
+	case *json.SyntaxError:
+		code = "json-syntax-error"
+		details["offset"] = fmt.Sprintf("%d", e.Offset)
+
+	case *json.UnmarshalTypeError:
+		code = "json-type-error"
+		details["field"] = e.Field
+	}
+
+	err := httpUtils.WriteJson(writer, ctx, map[string]interface{}{
+		"code":    code,
+		"details": details,
+	})
+	if err != nil {
+		logger.WithError(err).Error("Failed to write error response")
+		writer.WriteHeader(500)
+	}
+
+	writer.WriteHeader(400)
+}
+
+func logRoute(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+
+	methods, err := route.GetMethods()
+	if err != nil {
+		return err
+	}
+
+	pathTemplate, err := route.GetPathTemplate()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Route: %s %s", methods, pathTemplate)
+
+	return nil
 }

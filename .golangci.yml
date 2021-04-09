@@ -1,7 +1,6 @@
 linters:
   enable:
     - godot
-    - nlreturn
     - gosec
     - unconvert
     - dupl

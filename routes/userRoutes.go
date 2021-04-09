@@ -1,42 +1,42 @@
 package routes
 
 import (
+	"context"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
 	"github.com/open-collaboration/server/dtos"
+	"github.com/open-collaboration/server/httpUtils"
 	"github.com/open-collaboration/server/services"
+	"net/http"
 	"os"
 )
 
 // Registers a user.
 // Accepts a dtos.NewUserDto as Json.
-func RouteRegisterUser(c *gin.Context, usersService *services.UsersService) error {
-	newUser := dtos.NewUserDto{}
-	err := c.ShouldBind(&newUser)
-
+func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
+	dto := dtos.NewUserDto{}
+	err := httpUtils.ReadJson(request, dto)
 	if err != nil {
 		return err
 	}
 
-	err = usersService.CreateUser(c, newUser)
+	err = usersService.CreateUser(context.TODO(), dto)
 	if err != nil {
 		return err
 	}
 
-	c.Status(201)
+	writer.WriteHeader(201)
 
 	return nil
 }
 
-func RouteAuthenticateUser(c *gin.Context, usersService *services.UsersService) error {
-	authUser := dtos.LoginDto{}
-	err := c.ShouldBind(&authUser)
-
+func RouteAuthenticateUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
+	dto := dtos.LoginDto{}
+	err := httpUtils.ReadJson(request, dto)
 	if err != nil {
 		return err
 	}
 
-	user, err := usersService.AuthenticateUser(c, authUser)
+	user, err := usersService.AuthenticateUser(context.TODO(), dto)
 	if err != nil {
 		return err
 	}
@@ -59,9 +59,14 @@ func RouteAuthenticateUser(c *gin.Context, usersService *services.UsersService) 
 			},
 		}
 
-		c.JSON(200, authenticatedUser)
+		err = httpUtils.WriteJson(writer, context.TODO(), authenticatedUser)
+		if err != nil {
+			return err
+		}
+
+		writer.WriteHeader(200)
 	} else {
-		c.AbortWithStatus(401)
+		writer.WriteHeader(401)
 	}
 
 	return nil

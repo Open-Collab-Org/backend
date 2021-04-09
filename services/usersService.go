@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 	"errors"
+	"github.com/apex/log"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/logging"
 	"github.com/open-collaboration/server/models"
 	"gorm.io/gorm"
 )
@@ -33,7 +33,7 @@ func (s *UsersService) CreateUser(ctx context.Context, newUser dtos.NewUserDto) 
 }
 
 func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.LoginDto) (*models.User, error) {
-	logger := logging.LoggerFromCtx(ctx).
+	logger := log.FromContext(ctx).
 		WithField("username", authUser.UsernameOrEmail)
 
 	logger.Debug("Attempting to authenticate user")

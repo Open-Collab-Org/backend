@@ -13,5 +13,4 @@ type Project struct {
 	LongDescription  string
 	ShortDescription string
 	GithubLink       string
-	LinkUid          int `gorm:"autoIncrement"`
 }

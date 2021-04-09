@@ -6,7 +6,6 @@ require (
 	github.com/apex/log v1.9.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/gin-gonic/gin v1.6.3
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/gofrs/uuid v3.2.0+incompatible

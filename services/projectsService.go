@@ -5,7 +5,6 @@ import (
 	"github.com/apex/log"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/logging"
 	"github.com/open-collaboration/server/models"
 	"gorm.io/gorm"
 )
@@ -41,7 +40,7 @@ func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.Projec
 }
 
 func (s *ProjectsService) ListProjects(ctx context.Context, pageSize uint, pageOffset uint, tags []string, skills []string) ([]dtos.ProjectSummaryDto, error) {
-	logger := logging.LoggerFromCtx(ctx)
+	logger := log.FromContext(ctx)
 
 	logger.WithFields(log.Fields{
 		"page_size":   pageSize,
