@@ -11,17 +11,20 @@ type NewProjectDto struct {
 }
 
 type ProjectSummaryDto struct {
+	// The project ID
+	//
+	// Required: true
 	Id               uint           `json:"id" binding:""`
 	Name             string         `json:"name" binding:"required"`
-	Tags             pq.StringArray `json:"tags" binding:"required" gorm:"type: TEXT[]"`
+	Tags             pq.StringArray `json:"tags" binding:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
 	ShortDescription string         `json:"shortDescription" binding:"required"`
-	Skills           pq.StringArray `json:"skills" binding:"required" gorm:"type: TEXT[]"`
+	Skills           pq.StringArray `json:"skills" binding:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
 }
 
 type ProjectDto struct {
 	Id               uint           `json:"id"`
 	Name             string         `json:"name"`
-	Tags             pq.StringArray `json:"tags"`
+	Tags             pq.StringArray `json:"tags" swaggertype:"array,string"`
 	ShortDescription string         `json:"shortDescription"`
 	LongDescription  string         `json:"fullDescription"`
 	GithubLink       string         `json:"githubLink"`

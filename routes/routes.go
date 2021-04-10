@@ -26,6 +26,13 @@ func SetupRoutes(router *mux.Router, providers []interface{}) {
 	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
 	router.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
 
+	swaggerUi := http.FileServer(http.Dir("swagger-ui/"))
+
+	router.
+		PathPrefix("/swagger-ui").
+		Handler(http.StripPrefix("/swagger-ui/", swaggerUi)).
+		Methods("GET")
+
 	err := router.Walk(logRouteDeclaration)
 	if err != nil {
 		log.WithError(err).Error("Failed to log routes")

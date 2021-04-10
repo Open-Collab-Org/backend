@@ -13,6 +13,11 @@ import (
 	"strings"
 )
 
+// @Summary Get a project
+// @Tags projects
+// @Router /projects [post]
+// @Param project body dtos.NewProjectDto true "hello"
+// @Success 200 {object} dtos.ProjectSummaryDto.
 func RouteCreateProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 
 	dto := dtos.NewProjectDto{}
@@ -38,6 +43,12 @@ func RouteCreateProject(writer http.ResponseWriter, request *http.Request, proje
 	return nil
 }
 
+// @Summary List all projects
+// @Tags projects
+// @Router /projects [get]
+// @Param pageSize query int false "Maximum amount of projects in the response. Default is 20, max is 20."
+// @Param pageOffset query int false "Response page number. If pageSize is 20 and pageOffset is 2, the first 40 projects will be skipped."
+// @Success 200 {object} dtos.ProjectSummaryDto.
 func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 	// TODO: move hardcoded maximum and default page size values to
 	// 	an env variable
@@ -76,6 +87,11 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 	return nil
 }
 
+// @Summary Get project
+// @Tags projects
+// @Router /projects/{id} [get]
+// @Param id path int true "The project ID"
+// @Success 200 {object} dtos.ProjectDto.
 func RouteGetProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 	var projectId uint
 	vars := mux.Vars(request)
