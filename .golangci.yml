@@ -6,3 +6,4 @@ linters:
     - dupl
   disable:
     - ineffassign
+    - staticcheck
