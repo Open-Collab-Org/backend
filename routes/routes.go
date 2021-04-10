@@ -25,7 +25,7 @@ func SetupRoutes(router *mux.Router, providers []interface{}) {
 	router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
 
-	err := router.Walk(logRoute)
+	err := router.Walk(logRouteDeclaration)
 	if err != nil {
 		log.WithError(err).Error("Failed to log routes")
 		panic("Failed to log routes")
@@ -58,6 +58,8 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 		})
 		ctx = log.NewContext(ctx, logger)
 
+		logRouteExecution(request, ctx)
+
 		reqProviders := append(
 			godi.Providers{
 				ctx,
@@ -81,6 +83,11 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 	}
 }
 
+// Handle an error that was returned by a route.
+//
+// Json syntax and unmarshalling errors return to the client a
+// 400 response with an error description.
+// All other errors return a 500 without a body.
 func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr error) {
 	logger := log.FromContext(ctx)
 
@@ -113,7 +120,10 @@ func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr 
 	}
 }
 
-func logRoute(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
+// Log a route declaration in the format "Route: [METHOD] <path>".
+// This basically just to inform that a route has been properly
+// configured.
+func logRouteDeclaration(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
 
 	methods, err := route.GetMethods()
 	if err != nil {
@@ -128,4 +138,11 @@ func logRoute(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
 	log.Infof("Route: %s %s", methods, pathTemplate)
 
 	return nil
+}
+
+// Log the start of the execution of a route handler.
+func logRouteExecution(request *http.Request, ctx context.Context) {
+	logger := log.FromContext(ctx)
+
+	logger.Infof("Processing %s request to %s", request.Method, request.URL)
 }
