@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/apex/log"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
@@ -12,6 +13,8 @@ import (
 type ProjectsService struct {
 	Db *gorm.DB
 }
+
+var ProjectNotFoundError = errors.New("project not found")
 
 func (s *ProjectsService) CreateProject(newProject dtos.NewProjectDto) (*models.Project, error) {
 	project := models.Project{
@@ -37,6 +40,36 @@ func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.Projec
 		Tags:             project.Tags,
 		ShortDescription: project.ShortDescription,
 	}
+}
+
+func (s *ProjectsService) GetProject(ctx context.Context, projectId uint) (dtos.ProjectDto, error) {
+	logger := log.FromContext(ctx)
+
+	logger.Debugf("Querying for project of id %d", projectId)
+
+	project := models.Project{}
+	result := s.Db.First(&project, projectId)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Debugf("Project of id %d was not found", projectId)
+			return dtos.ProjectDto{}, ProjectNotFoundError
+		} else {
+			logger.WithError(result.Error).Errorf("Failed to query for project of id %d", projectId)
+			return dtos.ProjectDto{}, result.Error
+		}
+	}
+
+	logger.Debugf("Project of id %d was found", projectId)
+
+	return dtos.ProjectDto{
+		Id:               project.ID,
+		Name:             project.Name,
+		Tags:             project.Tags,
+		ShortDescription: project.ShortDescription,
+		LongDescription:  project.LongDescription,
+		GithubLink:       project.GithubLink,
+	}, nil
 }
 
 func (s *ProjectsService) ListProjects(ctx context.Context, pageSize uint, pageOffset uint, tags []string, skills []string) ([]dtos.ProjectSummaryDto, error) {

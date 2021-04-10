@@ -18,6 +18,15 @@ type ProjectSummaryDto struct {
 	Skills           pq.StringArray `json:"skills" binding:"required" gorm:"type: TEXT[]"`
 }
 
+type ProjectDto struct {
+	Id               uint           `json:"id"`
+	Name             string         `json:"name"`
+	Tags             pq.StringArray `json:"tags"`
+	ShortDescription string         `json:"shortDescription"`
+	LongDescription  string         `json:"fullDescription"`
+	GithubLink       string         `json:"githubLink"`
+}
+
 type ListProjectsParamsDto struct {
 	PageSize   uint     `form:"pageSize"`
 	PageOffset uint     `form:"pageOffset"`

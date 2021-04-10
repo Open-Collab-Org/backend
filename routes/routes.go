@@ -24,6 +24,7 @@ func SetupRoutes(router *mux.Router, providers []interface{}) {
 	router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
+	router.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
 
 	err := router.Walk(logRouteDeclaration)
 	if err != nil {
