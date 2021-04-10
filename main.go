@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
 	"github.com/gorilla/mux"
@@ -28,7 +29,13 @@ func main() {
 	}
 
 	// Setup db connection
-	dsn := "host=localhost user=root password=changeme dbname=opencollab port=5432 sslmode=disable"
+	pgHost := os.Getenv("PG_HOST")
+	pgPort := os.Getenv("PG_PORT")
+	pgUser := os.Getenv("PG_USER")
+	pgPassword := os.Getenv("PG_PASSWORD")
+	pgDbName := os.Getenv("PG_DB_NAME")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", pgHost, pgPort, pgUser, pgPassword, pgDbName)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.WithError(err).Error("Failed to connect to database.")
