@@ -83,8 +83,17 @@ func (s *ProjectsService) ListProjects(ctx context.Context, pageSize uint, pageO
 	}).
 		Debug("Listing projects")
 
+	if tags == nil {
+		tags = []string{}
+	}
+
+	if skills == nil {
+		skills = []string{}
+	}
+
 	projectSummaries := make([]dtos.ProjectSummaryDto, pageSize)
 	result := s.Db.
+		Debug().
 		Model(&models.Project{}).
 		Select("name", "tags", "short_description", "id").
 		Where("cardinality(?::TEXT[]) < 1 OR tags && ?", pq.StringArray(tags), pq.StringArray(tags)).

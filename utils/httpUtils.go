@@ -1,23 +1,29 @@
-package httpUtils
+package utils
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/apex/log"
+	"io"
 	"net/http"
 	"strconv"
 )
 
 // Read the request body as JSON and unmarshal it into `dto`.
 // The request body is unmarshalled with json.Unmarshal.
-func ReadJson(request *http.Request, dto interface{}) error {
+func ReadJson(request *http.Request, ctx context.Context, dto interface{}) error {
+	logger := log.FromContext(ctx)
+
 	bodyBytes, err := ReadBody(request)
 	if err != nil {
+		logger.WithError(err).Error("Failed to read request body")
 		return err
 	}
 
 	err = json.Unmarshal(bodyBytes, dto)
 	if err != nil {
+		logger.WithError(err).Info("Failed to unmarshal json")
 		return err
 	}
 
@@ -27,7 +33,7 @@ func ReadJson(request *http.Request, dto interface{}) error {
 // Marshal a go object into JSON and send it as the response body. `data` is
 // the data to be sent, it is marshaled  with json.Marshal and sent
 // with http.ResponseWriter.Write.
-func WriteJson(writer http.ResponseWriter, ctx context.Context, data interface{}) error {
+func WriteJson(writer http.ResponseWriter, ctx context.Context, status int, data interface{}) error {
 	logger := log.FromContext(ctx)
 
 	bytes, err := json.Marshal(data)
@@ -39,6 +45,7 @@ func WriteJson(writer http.ResponseWriter, ctx context.Context, data interface{}
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Header().Set("Content-Length", strconv.Itoa(len(bytes)))
+	writer.WriteHeader(status)
 	_, err = writer.Write(bytes)
 	if err != nil {
 		logger.WithError(err).Error("Failed to write JSON response.")
@@ -78,7 +85,9 @@ func ReadBody(r *http.Request) ([]byte, error) {
 		chunk := make([]byte, 2048)
 		n, err := r.Body.Read(chunk)
 		if err != nil {
-			return nil, err
+			if !errors.Is(err, io.EOF) {
+				return nil, err
+			}
 		}
 
 		bytes = append(bytes, chunk[:n]...)

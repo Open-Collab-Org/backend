@@ -9,7 +9,7 @@ import (
 	"github.com/apex/log"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
-	"github.com/open-collaboration/server/httpUtils"
+	"github.com/open-collaboration/server/utils"
 	"net/http"
 )
 
@@ -95,29 +95,32 @@ func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr 
 	code := "unknown-error"
 	details := map[string]interface{}{}
 
+	logger.WithError(routeErr).Debug("Route resulted in error")
+
+	var status int
+
 	switch e := routeErr.(type) {
 	default:
-		writer.WriteHeader(500)
+		status = http.StatusInternalServerError
 
 	case *json.SyntaxError:
 		code = "json-syntax-error"
 		details["offset"] = fmt.Sprintf("%d", e.Offset)
-		writer.WriteHeader(400)
+		status = http.StatusBadRequest
 
 	case *json.UnmarshalTypeError:
 		code = "json-type-error"
 		details["field"] = e.Field
-		writer.WriteHeader(400)
+		status = http.StatusBadRequest
 
 	}
 
-	err := httpUtils.WriteJson(writer, ctx, map[string]interface{}{
+	err := utils.WriteJson(writer, ctx, status, map[string]interface{}{
 		"code":    code,
 		"details": details,
 	})
 	if err != nil {
 		logger.WithError(err).Error("Failed to write error response")
-		writer.WriteHeader(500)
 	}
 }
 

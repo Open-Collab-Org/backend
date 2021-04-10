@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/httpUtils"
 	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/utils"
 	"net/http"
 	"os"
 )
@@ -14,7 +14,7 @@ import (
 // Accepts a dtos.NewUserDto as Json.
 func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
 	dto := dtos.NewUserDto{}
-	err := httpUtils.ReadJson(request, dto)
+	err := utils.ReadJson(request, context.TODO(), &dto)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersS
 
 func RouteAuthenticateUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
 	dto := dtos.LoginDto{}
-	err := httpUtils.ReadJson(request, dto)
+	err := utils.ReadJson(request, context.TODO(), &dto)
 	if err != nil {
 		return err
 	}
@@ -59,12 +59,10 @@ func RouteAuthenticateUser(writer http.ResponseWriter, request *http.Request, us
 			},
 		}
 
-		err = httpUtils.WriteJson(writer, context.TODO(), authenticatedUser)
+		err = utils.WriteJson(writer, context.TODO(), http.StatusOK, authenticatedUser)
 		if err != nil {
 			return err
 		}
-
-		writer.WriteHeader(200)
 	} else {
 		writer.WriteHeader(401)
 	}

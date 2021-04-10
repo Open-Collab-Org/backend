@@ -2,20 +2,20 @@ package routes
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/httpUtils"
 	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/utils"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func RouteCreateProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 
 	dto := dtos.NewProjectDto{}
-	err := httpUtils.ReadJson(request, dto)
+	err := utils.ReadJson(request, context.TODO(), &dto)
 	if err != nil {
 		return err
 	}
@@ -26,14 +26,10 @@ func RouteCreateProject(writer http.ResponseWriter, request *http.Request, proje
 	}
 
 	projectSummary := projectsService.GetProjectSummary(createdProject)
-	responseBody, err := json.Marshal(projectSummary)
-	if err != nil {
-		return err
-	}
 
-	writer.Header().Set("Location", "/projects/"+string(rune(createdProject.ID)))
+	writer.Header().Set("Location", "/projects/"+strconv.Itoa(int(createdProject.ID)))
 
-	_, err = writer.Write(responseBody)
+	err = utils.WriteJson(writer, context.TODO(), http.StatusCreated, projectSummary)
 	if err != nil {
 		return err
 	}
@@ -44,8 +40,15 @@ func RouteCreateProject(writer http.ResponseWriter, request *http.Request, proje
 func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 	// TODO: move hardcoded maximum and default page size values to
 	// 	an env variable
-	pageSize, _ := httpUtils.IntFromQuery(request, "pageSize", 20)
-	pageOffset, _ := httpUtils.IntFromQuery(request, "pageOffset", 0)
+	pageSize, _ := utils.IntFromQuery(request, "pageSize", 20)
+	pageOffset, _ := utils.IntFromQuery(request, "pageOffset", 0)
+
+	var tags []string
+	if len(request.URL.Query()["tags"]) > 0 {
+		println(len(request.URL.Query()["tags"]))
+		tagsRaw := strings.Join(request.URL.Query()["tags"], ",")
+		tags = strings.Split(tagsRaw, ",")
+	}
 
 	if pageSize < 1 || pageSize > 20 {
 		pageSize = 20
@@ -55,12 +58,12 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 		pageOffset = 0
 	}
 
-	projectSummaries, err := projectsService.ListProjects(context.TODO(), uint(pageSize), uint(pageOffset), []string{}, []string{})
+	projectSummaries, err := projectsService.ListProjects(context.TODO(), uint(pageSize), uint(pageOffset), tags, []string{})
 	if err != nil {
 		return err
 	}
 
-	err = httpUtils.WriteJson(writer, context.TODO(), projectSummaries)
+	err = utils.WriteJson(writer, context.TODO(), http.StatusOK, projectSummaries)
 	if err != nil {
 		return err
 	}
@@ -90,7 +93,7 @@ func RouteGetProject(writer http.ResponseWriter, request *http.Request, projects
 		}
 	}
 
-	err = httpUtils.WriteJson(writer, context.TODO(), dto)
+	err = utils.WriteJson(writer, context.TODO(), http.StatusOK, dto)
 	if err != nil {
 		return err
 	}
