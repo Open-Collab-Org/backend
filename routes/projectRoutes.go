@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
 	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
@@ -61,6 +62,10 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 	projectSummaries, err := projectsService.ListProjects(context.TODO(), uint(pageSize), uint(pageOffset), tags, []string{})
 	if err != nil {
 		return err
+	}
+
+	for i := range projectSummaries {
+		projectSummaries[i].Skills = pq.StringArray{}
 	}
 
 	err = utils.WriteJson(writer, context.TODO(), http.StatusOK, projectSummaries)
