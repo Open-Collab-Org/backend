@@ -8,6 +8,7 @@ import (
 	"github.com/open-collaboration/server/migrations"
 	"github.com/open-collaboration/server/routes"
 	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"net/http"
@@ -57,17 +58,12 @@ func main() {
 
 	router := routes.SetupRoutes(providers[:])
 
-	addr := os.Getenv("HOST")
+	host := utils.GetEnvOrPanic("HOST")
+	port := utils.GetEnvOrPanic("PORT")
 	server := &http.Server{
-		Addr:    addr,
+		Addr:    fmt.Sprintf("%s:%s", host, port),
 		Handler: router,
 	}
-
-	/*
-		server.Use(gin.Recovery())
-		server.Use(logging.LoggerMiddleware)
-		server.Use(cors.Default())
-	*/
 
 	// Start server
 	err = server.ListenAndServe()
