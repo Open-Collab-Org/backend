@@ -9,6 +9,7 @@ import (
 	"github.com/apex/log"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
+	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
 )
@@ -19,25 +20,33 @@ type RouteResponse struct {
 }
 
 // Sets up all routes in the application.
-func SetupRoutes(router *mux.Router, providers []interface{}) {
+func SetupRoutes(providers []interface{}) *mux.Router {
+	router := mux.NewRouter()
+
+	router.Use(middleware.CorsMiddleware)
+
+	// Setup routes
 	router.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
 	router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
 	router.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
 
+	// Swagger
 	swaggerUi := http.FileServer(http.Dir("swagger-ui/"))
-
 	router.
 		PathPrefix("/swagger-ui").
 		Handler(http.StripPrefix("/swagger-ui/", swaggerUi)).
 		Methods("GET")
 
+	// Log routes
 	err := router.Walk(logRouteDeclaration)
 	if err != nil {
 		log.WithError(err).Error("Failed to log routes")
 		panic("Failed to log routes")
 	}
+
+	return router
 }
 
 // This method is used to create gin route handlers with a few conveniences.

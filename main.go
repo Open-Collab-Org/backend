@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
-	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/open-collaboration/server/migrations"
 	"github.com/open-collaboration/server/routes"
@@ -56,9 +55,7 @@ func main() {
 		&services.ProjectsService{Db: db},
 	}
 
-	router := mux.NewRouter()
-
-	routes.SetupRoutes(router, providers[:])
+	router := routes.SetupRoutes(providers[:])
 
 	addr := os.Getenv("HOST")
 	server := &http.Server{
