@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
+	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	"github.com/open-collaboration/server/migrations"
 	"github.com/open-collaboration/server/routes"
@@ -50,8 +52,22 @@ func main() {
 		panic(err)
 	}
 
+	// Setup redisDb connection
+	redisHost := utils.GetEnvOrPanic("REDIS_HOST")
+	redisPort := utils.GetEnvOrPanic("REDIS_PORT")
+	redisDb := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%s", redisHost, redisPort),
+	})
+
+	// Test redisDb connection
+	_, err = redisDb.Ping(context.Background()).Result()
+	if err != nil {
+		panic(err)
+	}
+
 	// Setup server
 	providers := []interface{}{
+		&services.AuthService{Db: db, Redis: redisDb},
 		&services.UsersService{Db: db},
 		&services.ProjectsService{Db: db},
 	}

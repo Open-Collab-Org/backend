@@ -8,6 +8,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
+	github.com/go-redis/redis/v8 v8.8.0 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.3.0

@@ -2,12 +2,12 @@ package routes
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
+	"fmt"
+	"github.com/apex/log"
 	"github.com/open-collaboration/server/dtos"
 	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
-	"os"
 )
 
 // Registers a user.
@@ -29,37 +29,41 @@ func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersS
 	return nil
 }
 
-func RouteAuthenticateUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
+func RouteAuthenticateUser(
+	ctx context.Context,
+	writer http.ResponseWriter,
+	request *http.Request,
+	usersService *services.UsersService,
+	authService *services.AuthService,
+) error {
+	logger := log.FromContext(ctx)
+
 	dto := dtos.LoginDto{}
-	err := utils.ReadJson(request, context.TODO(), &dto)
+	err := utils.ReadJson(request, ctx, &dto)
 	if err != nil {
 		return err
 	}
 
-	user, err := usersService.AuthenticateUser(context.TODO(), dto)
+	user, err := usersService.AuthenticateUser(ctx, dto)
 	if err != nil {
 		return err
 	}
 
 	if user != nil {
-		claims := jwt.MapClaims{"userId": user.ID}
-
-		jwtKey := os.Getenv("JWT_SIGNING_KEY")
-
-		token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtKey))
+		sessionToken, err := authService.CreateSession(ctx, user.ID)
 		if err != nil {
-			return err
+			logger.WithError(err).Error("Failed to create session")
 		}
 
-		authenticatedUser := dtos.AuthenticatedUserDto{
-			Token: token,
-			User: dtos.UserDataDto{
-				Username: user.Username,
-				Email:    user.Email,
-			},
+		userData := dtos.UserDataDto{
+			Username: user.Username,
+			Email:    user.Email,
 		}
 
-		err = utils.WriteJson(writer, context.TODO(), http.StatusOK, authenticatedUser)
+		cookieHeader := fmt.Sprintf("%s=%s", "sessionToken", sessionToken)
+		writer.Header().Set("Set-Cookie", cookieHeader)
+
+		err = utils.WriteJson(writer, ctx, http.StatusOK, userData)
 		if err != nil {
 			return err
 		}

@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrUserNotFound = errors.New("user not found")
+
 type UsersService struct {
 	Db *gorm.DB
 }
@@ -32,13 +34,33 @@ func (s *UsersService) CreateUser(ctx context.Context, newUser dtos.NewUserDto) 
 	return nil
 }
 
+func (s *UsersService) GetUser(ctx context.Context, id uint) (*models.User, error) {
+	logger := log.FromContext(ctx)
+
+	user := &models.User{}
+	result := s.Db.First(user, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Debugf("User not found", id)
+
+			return nil, ErrUserNotFound
+		} else {
+			logger.WithError(result.Error).Error("Database error")
+
+			return nil, result.Error
+		}
+	}
+
+	return user, nil
+}
+
 func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.LoginDto) (*models.User, error) {
 	logger := log.FromContext(ctx).
 		WithField("username", authUser.UsernameOrEmail)
 
 	logger.Debug("Attempting to authenticate user")
 
-	logger.Debug("Searching for user in database...")
+	logger.Debug("Searching for user in database")
 
 	user := &models.User{}
 	result := s.Db.
@@ -58,7 +80,7 @@ func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.Login
 		}
 	}
 
-	logger.Debug("User found, comparing passwords...")
+	logger.Debug("User found, comparing passwords")
 
 	passwordMatch, err := user.ComparePassword(authUser.Password)
 	if err != nil {

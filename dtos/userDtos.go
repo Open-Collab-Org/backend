@@ -17,8 +17,3 @@ type UserDataDto struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 }
-
-type AuthenticatedUserDto struct {
-	Token string      `json:"token"`
-	User  UserDataDto `json:"user"`
-}
