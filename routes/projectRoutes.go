@@ -13,10 +13,10 @@ import (
 	"strings"
 )
 
-// @Summary Get a project
+// @Summary Create a project
 // @Tags projects
 // @Router /projects [post]
-// @Param project body dtos.NewProjectDto true "hello"
+// @Param project body dtos.NewProjectDto true "Project data"
 // @Success 200 {object} dtos.ProjectSummaryDto.
 func RouteCreateProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
 

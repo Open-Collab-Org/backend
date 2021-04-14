@@ -10,16 +10,24 @@ import (
 	"net/http"
 )
 
-// Registers a user.
-// Accepts a dtos.NewUserDto as Json.
-func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersService *services.UsersService) error {
+// @Summary Register a new user
+// @Tags users
+// @Router /users [post]
+// @Param userData body dtos.NewUserDto true "The user's data"
+// @Success 201
+func RouteRegisterUser(
+	ctx context.Context,
+	writer http.ResponseWriter,
+	request *http.Request,
+	usersService *services.UsersService,
+) error {
 	dto := dtos.NewUserDto{}
-	err := utils.ReadJson(request, context.TODO(), &dto)
+	err := utils.ReadJson(request, ctx, &dto)
 	if err != nil {
 		return err
 	}
 
-	err = usersService.CreateUser(context.TODO(), dto)
+	err = usersService.CreateUser(ctx, dto)
 	if err != nil {
 		return err
 	}
@@ -29,6 +37,13 @@ func RouteRegisterUser(writer http.ResponseWriter, request *http.Request, usersS
 	return nil
 }
 
+// @Summary Authenticate user
+// @Tags users
+// @Router /login [post]
+// @Param credentials body dtos.LoginDto true "The user's credentials"
+// @Success 200 {object} dtos.UserDataDto "User successfully authenticated"
+// @Header 200 {string} Set-Cookie "Session token. E.g. sessionToken=72f34c69-6eb0-47cf-83ed-c2b5ad3989df"
+// @Failure 401
 func RouteAuthenticateUser(
 	ctx context.Context,
 	writer http.ResponseWriter,
