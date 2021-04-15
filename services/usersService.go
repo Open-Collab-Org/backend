@@ -10,11 +10,13 @@ import (
 )
 
 var ErrUserNotFound = errors.New("user not found")
+var ErrWrongPassword = errors.New("wrong password")
 
 type UsersService struct {
 	Db *gorm.DB
 }
 
+// Create a user.
 func (s *UsersService) CreateUser(ctx context.Context, newUser dtos.NewUserDto) error {
 	user := models.User{
 		Username: newUser.Username,
@@ -34,6 +36,8 @@ func (s *UsersService) CreateUser(ctx context.Context, newUser dtos.NewUserDto) 
 	return nil
 }
 
+// Get a user by id.
+// Returns ErrUserNotFound if a user with the specified id cannot be found.
 func (s *UsersService) GetUser(ctx context.Context, id uint) (*models.User, error) {
 	logger := log.FromContext(ctx)
 
@@ -54,6 +58,9 @@ func (s *UsersService) GetUser(ctx context.Context, id uint) (*models.User, erro
 	return user, nil
 }
 
+// Authenticate a user with username or email and a password.
+// Returns ErrUserNotFound if a user with a matching username/email and password pair cannot be found.
+// Returns ErrWrongPassword if the hashed password does not equal the user's stored password hash.
 func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.LoginDto) (*models.User, error) {
 	logger := log.FromContext(ctx).
 		WithField("username", authUser.UsernameOrEmail)
@@ -72,7 +79,7 @@ func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.Login
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			logger.Debug("User not found")
 
-			return nil, nil
+			return nil, ErrUserNotFound
 		} else {
 			logger.WithError(result.Error).Error("Could not query for user in database")
 
@@ -94,6 +101,6 @@ func (s *UsersService) AuthenticateUser(ctx context.Context, authUser dtos.Login
 	} else {
 		logger.Debug("Wrong password")
 
-		return nil, nil
+		return nil, ErrWrongPassword
 	}
 }

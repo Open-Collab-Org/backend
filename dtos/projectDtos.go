@@ -11,9 +11,6 @@ type NewProjectDto struct {
 }
 
 type ProjectSummaryDto struct {
-	// The project ID
-	//
-	// Required: true
 	Id               uint           `json:"id" binding:""`
 	Name             string         `json:"name" binding:"required"`
 	Tags             pq.StringArray `json:"tags" binding:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`

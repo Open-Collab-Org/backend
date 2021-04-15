@@ -59,7 +59,7 @@ func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string
 	return user, nil
 }
 
-// Create a session key for a user.
+// Create a session key for a user. The session key will last 30 days.
 func (s *AuthService) CreateSession(ctx context.Context, userId uint) (string, error) {
 	logger := log.FromContext(ctx)
 
@@ -102,7 +102,7 @@ func (s *AuthService) CreateSession(ctx context.Context, userId uint) (string, e
 	return sessionKey.String(), nil
 }
 
-// Invalidate (delete) all sessions of a specified user.
+// Invalidate (delete) all sessions of a user.
 func (s *AuthService) InvalidateSessions(ctx context.Context, userId uint) error {
 	var sessionsSet []string
 

@@ -33,6 +33,7 @@ func (s *ProjectsService) CreateProject(newProject dtos.NewProjectDto) (*models.
 	return &project, nil
 }
 
+// Get the given project's summary
 func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.ProjectSummaryDto {
 	return dtos.ProjectSummaryDto{
 		Id:               project.ID,
@@ -42,6 +43,8 @@ func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.Projec
 	}
 }
 
+// Get a project by id.
+// Returns ProjectNotFoundError if the project can't be found.
 func (s *ProjectsService) GetProject(ctx context.Context, projectId uint) (dtos.ProjectDto, error) {
 	logger := log.FromContext(ctx)
 
@@ -72,7 +75,26 @@ func (s *ProjectsService) GetProject(ctx context.Context, projectId uint) (dtos.
 	}, nil
 }
 
-func (s *ProjectsService) ListProjects(ctx context.Context, pageSize uint, pageOffset uint, tags []string, skills []string) ([]dtos.ProjectSummaryDto, error) {
+// List all projects ordered by creation date, newest to oldest.
+//
+// Results are returned in "pages". A page is determined by the pageSize and
+// pageOffset parameters. pageSize determines the maximum amount of projects
+// that can be returned, and page offset determines how many pages (i.e. projects)
+// to skip. For example: if pageSize is 20 and pageOffset is 3, a maximum of 20
+// projects will be returned and 60 (3x20) projects will be skipped.
+//
+// You can also filter the results by tags and skills. If tags is specified
+// (non-nil and non-empty), any projects that have at least one of the specified
+// tags will be returned. If skills is specified (non-nil and non-empty), any projects
+// that have at least one role that require at least one of the specified skills will
+// be returned.
+func (s *ProjectsService) ListProjects(
+	ctx context.Context,
+	pageSize uint,
+	pageOffset uint,
+	tags []string,
+	skills []string,
+) ([]dtos.ProjectSummaryDto, error) {
 	logger := log.FromContext(ctx)
 
 	logger.WithFields(log.Fields{
