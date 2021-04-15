@@ -104,11 +104,16 @@ func (s *AuthService) CreateSession(ctx context.Context, userId uint) (string, e
 
 // Invalidate (delete) all sessions of a user.
 func (s *AuthService) InvalidateSessions(ctx context.Context, userId uint) error {
+	logger := log.FromContext(ctx).WithField("userId", userId)
+
+	logger.Debug("Invalidating all sessions of user")
+
 	var sessionsSet []string
 
 	redisKey := sessionInvertedIndexRedisKey(userId)
 	err := s.Redis.GetSet(ctx, redisKey, &sessionsSet).Err()
 	if err != nil {
+		logger.WithError(err).Error("Failed to get all of a user's session tokens")
 		return err
 	}
 
@@ -116,8 +121,12 @@ func (s *AuthService) InvalidateSessions(ctx context.Context, userId uint) error
 		sessionsSet[i] = sessionRedisKey(key)
 	}
 
-	err = s.Redis.Del(ctx, sessionsSet...).Err()
+	keysToDelete := append([]string{}, sessionsSet...)
+	keysToDelete = append(keysToDelete, redisKey)
+
+	err = s.Redis.Del(ctx, keysToDelete...).Err()
 	if err != nil {
+		logger.WithError(err).Error("Failed to delete session token keys")
 		return err
 	}
 
