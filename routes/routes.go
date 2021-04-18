@@ -27,17 +27,15 @@ func SetupRoutes(providers []interface{}) *mux.Router {
 
 	rootRouter.Use(middleware.CorsMiddleware)
 
+	authService := getProvider(providers, (*services.AuthService)(nil)).(*services.AuthService)
+	rootRouter.Use(middleware.SessionMiddleware(authService))
+
 	// Setup routes
 	rootRouter.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
 	rootRouter.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
 	rootRouter.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
+	rootRouter.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
-
-	// Protected routes
-	protectedRouter := rootRouter.NewRoute().Subrouter()
-	authService := getProvider(providers, (*services.AuthService)(nil)).(*services.AuthService)
-	protectedRouter.Use(middleware.SessionMiddleware(authService))
-	protectedRouter.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 
 	// Swagger
 	swaggerUi := http.FileServer(http.Dir("swagger-ui/"))
@@ -124,7 +122,12 @@ func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr 
 
 	switch e := routeErr.(type) {
 	default:
-		status = http.StatusInternalServerError
+		if errors.Is(routeErr, utils.ErrUnauthenticated) {
+			status = http.StatusUnauthorized
+			code = "unauthenticated-error"
+		} else {
+			status = http.StatusInternalServerError
+		}
 
 	case *json.SyntaxError:
 		code = "json-syntax-error"

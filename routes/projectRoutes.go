@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
@@ -24,16 +23,14 @@ func RouteCreateProject(
 	writer http.ResponseWriter,
 	request *http.Request,
 	projectsService *services.ProjectsService,
-	authService *services.AuthService,
 ) error {
-	session := request.Context().Value(middleware.Session{})
-	if session == nil {
-		writer.WriteHeader(http.StatusUnauthorized)
-		return nil
+	_, err := utils.CheckSession(request)
+	if err != nil {
+		return err
 	}
 
 	dto := dtos.NewProjectDto{}
-	err := utils.ReadJson(request, ctx, &dto)
+	err = utils.ReadJson(request, ctx, &dto)
 	if err != nil {
 		return err
 	}
