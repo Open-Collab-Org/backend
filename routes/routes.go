@@ -10,8 +10,10 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/open-collaboration/server/middleware"
+	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
+	"reflect"
 )
 
 type RouteResponse struct {
@@ -21,32 +23,37 @@ type RouteResponse struct {
 
 // Sets up all routes in the application.
 func SetupRoutes(providers []interface{}) *mux.Router {
-	router := mux.NewRouter()
+	rootRouter := mux.NewRouter()
 
-	router.Use(middleware.CorsMiddleware)
+	rootRouter.Use(middleware.CorsMiddleware)
 
 	// Setup routes
-	router.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
-	router.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
-	router.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
-	router.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
-	router.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
+	rootRouter.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
+	rootRouter.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
+	rootRouter.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
+	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
+
+	// Protected routes
+	protectedRouter := rootRouter.NewRoute().Subrouter()
+	authService := getProvider(providers, (*services.AuthService)(nil)).(*services.AuthService)
+	protectedRouter.Use(middleware.SessionMiddleware(authService))
+	protectedRouter.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
 
 	// Swagger
 	swaggerUi := http.FileServer(http.Dir("swagger-ui/"))
-	router.
+	rootRouter.
 		PathPrefix("/swagger-ui").
 		Handler(http.StripPrefix("/swagger-ui/", swaggerUi)).
 		Methods("GET")
 
 	// Log routes
-	err := router.Walk(logRouteDeclaration)
+	err := rootRouter.Walk(logRouteDeclaration)
 	if err != nil {
 		log.WithError(err).Error("Failed to log routes")
 		panic("Failed to log routes")
 	}
 
-	return router
+	return rootRouter
 }
 
 // This method is used to create gin route handlers with a few conveniences.
@@ -147,12 +154,12 @@ func logRouteDeclaration(route *mux.Route, _ *mux.Router, _ []*mux.Route) error 
 
 	methods, err := route.GetMethods()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	pathTemplate, err := route.GetPathTemplate()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	log.Infof("Route: %s %s", methods, pathTemplate)
@@ -165,4 +172,16 @@ func logRouteExecution(request *http.Request, ctx context.Context) {
 	logger := log.FromContext(ctx)
 
 	logger.Infof("Processing %s request to %s", request.Method, request.URL)
+}
+
+func getProvider(providers []interface{}, providerType interface{}) interface{} {
+	pType := reflect.TypeOf(providerType)
+
+	for _, provider := range providers {
+		if reflect.TypeOf(provider).AssignableTo(pType) {
+			return provider
+		}
+	}
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
+	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
@@ -18,10 +19,21 @@ import (
 // @Router /projects [post]
 // @Param project body dtos.NewProjectDto true "Project data"
 // @Success 200 {object} dtos.ProjectSummaryDto.
-func RouteCreateProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
+func RouteCreateProject(
+	ctx context.Context,
+	writer http.ResponseWriter,
+	request *http.Request,
+	projectsService *services.ProjectsService,
+	authService *services.AuthService,
+) error {
+	session := request.Context().Value(middleware.Session{})
+	if session == nil {
+		writer.WriteHeader(http.StatusUnauthorized)
+		return nil
+	}
 
 	dto := dtos.NewProjectDto{}
-	err := utils.ReadJson(request, context.TODO(), &dto)
+	err := utils.ReadJson(request, ctx, &dto)
 	if err != nil {
 		return err
 	}
@@ -35,7 +47,7 @@ func RouteCreateProject(writer http.ResponseWriter, request *http.Request, proje
 
 	writer.Header().Set("Location", "/projects/"+strconv.Itoa(int(createdProject.ID)))
 
-	err = utils.WriteJson(writer, context.TODO(), http.StatusCreated, projectSummary)
+	err = utils.WriteJson(writer, ctx, http.StatusCreated, projectSummary)
 	if err != nil {
 		return err
 	}

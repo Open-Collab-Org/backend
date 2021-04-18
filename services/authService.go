@@ -7,12 +7,11 @@ import (
 	"github.com/apex/log"
 	"github.com/go-redis/redis/v8"
 	"github.com/gofrs/uuid"
-	"github.com/open-collaboration/server/models"
 	"gorm.io/gorm"
 	"time"
 )
 
-var ErrInvalidSessionKey = errors.New("invalid session key")
+var ErrInvalidSessionToken = errors.New("invalid session key")
 
 type AuthService struct {
 	Db           *gorm.DB
@@ -21,8 +20,8 @@ type AuthService struct {
 }
 
 // Check if a session exists and, if it does, return the session's user.
-// Returns ErrInvalidSessionKey if the session does not exist.
-func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string) (*models.User, error) {
+// Returns ErrInvalidSessionToken if the session does not exist.
+func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string) (uint, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Debug("Checking for session in redis")
@@ -33,30 +32,17 @@ func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string
 		if errors.Is(err, redis.Nil) {
 			logger.Debug("Session does not exist")
 
-			return nil, ErrInvalidSessionKey
+			return 0, ErrInvalidSessionToken
 		} else {
 			logger.WithError(err).Error("Failed to check for session in redis")
 
-			return nil, err
+			return 0, err
 		}
 	}
 
-	logger.Debug("Session found, getting user from db")
+	logger.Debug("Session is valid")
 
-	user, err := s.UsersService.GetUser(ctx, uint(userId))
-	if err != nil {
-		logger.
-			WithError(err).
-			WithFields(log.Fields{
-				"sessionKey": sessionKey,
-				"userId":     userId,
-			}).
-			Error("Failed to get the session's user, perhaps the user was deleted from the database?")
-
-		return nil, err
-	}
-
-	return user, nil
+	return uint(userId), nil
 }
 
 // Create a session key for a user. The session key will last 30 days.

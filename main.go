@@ -66,9 +66,11 @@ func main() {
 	}
 
 	// Setup server
+	usersService := &services.UsersService{Db: db}
+
 	providers := []interface{}{
-		&services.AuthService{Db: db, Redis: redisDb},
-		&services.UsersService{Db: db},
+		&services.AuthService{Db: db, Redis: redisDb, UsersService: usersService},
+		usersService,
 		&services.ProjectsService{Db: db},
 	}
 
