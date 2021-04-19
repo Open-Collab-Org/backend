@@ -5,13 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/apex/log"
-	"github.com/open-collaboration/server/middleware"
 	"io"
 	"net/http"
 	"strconv"
 )
-
-var ErrUnauthenticated = errors.New("unauthenticated")
 
 // Read the request body as JSON and unmarshal it into `dto`.
 // The request body is unmarshalled with json.Unmarshal.
@@ -101,13 +98,4 @@ func ReadBody(r *http.Request) ([]byte, error) {
 	}
 
 	return bytes, nil
-}
-
-func CheckSession(r *http.Request) (middleware.Session, error) {
-	session := r.Context().Value(middleware.Session{})
-	if session == nil {
-		return middleware.Session{}, ErrUnauthenticated
-	}
-
-	return session.(middleware.Session), nil
 }

@@ -14,6 +14,8 @@ type Session struct {
 	userId uint
 }
 
+var ErrUnauthenticated = errors.New("unauthenticated")
+
 // Checks the incoming request for a session token. If the session token
 // exists and is valid, a session is added to the request's context.
 // You can get the session with
@@ -63,4 +65,13 @@ func getSessionFromRequest(r *http.Request, authService *services.AuthService) (
 		token:  sessionToken.Value,
 		userId: userId,
 	}, nil
+}
+
+func CheckSession(r *http.Request) (Session, error) {
+	session := r.Context().Value(Session{})
+	if session == nil {
+		return Session{}, ErrUnauthenticated
+	}
+
+	return session.(Session), nil
 }

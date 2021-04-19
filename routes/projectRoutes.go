@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/dtos"
+	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/services"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
@@ -24,7 +25,7 @@ func RouteCreateProject(
 	request *http.Request,
 	projectsService *services.ProjectsService,
 ) error {
-	_, err := utils.CheckSession(request)
+	_, err := middleware.CheckSession(request)
 	if err != nil {
 		return err
 	}
