@@ -66,6 +66,10 @@ func getSessionFromRequest(r *http.Request, authService *Service) (Session, erro
 	}, nil
 }
 
+// Helper function to check if a request contains a valid session. Returns
+// the session if it does, otherwise returns an ErrUnauthenticated.
+// Intended to be used inside route handlers (or any handler that executes
+// after SessionMiddleware).
 func CheckSession(r *http.Request) (Session, error) {
 	session := r.Context().Value(Session{})
 	if session == nil {

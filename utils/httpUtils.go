@@ -85,13 +85,16 @@ func IntFromQuery(request *http.Request, param string, def int) (int, bool) {
 
 // Read the request's body into a slice of bytes.
 func ReadBody(r *http.Request) ([]byte, error) {
-
 	bytes := make([]byte, 0)
 
 	for {
 		chunk := make([]byte, 2048)
 		n, err := r.Body.Read(chunk)
 		if err != nil {
+			// If the error is an EOF error it means we
+			// go to the end of the stream and n will be 0,
+			// so we just ignore the error and let the loop
+			// exit below on the n < 1 condition
 			if !errors.Is(err, io.EOF) {
 				return nil, err
 			}

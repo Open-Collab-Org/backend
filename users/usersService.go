@@ -54,3 +54,31 @@ func (s *Service) GetUser(ctx context.Context, id uint) (*User, error) {
 
 	return user, nil
 }
+
+func (s *Service) FindUserByUsernameOrEmail(ctx context.Context, usernameOrEmail string) (*User, error) {
+	logger := log.FromContext(ctx).WithField("usernameOrEmail", usernameOrEmail)
+
+	logger.Debug("Searching for user on database")
+
+	user := &User{}
+	result := s.Db.
+		Where("username = ?", usernameOrEmail).
+		Or("email = ?", usernameOrEmail).
+		First(user)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Debug("User not found")
+
+			return nil, ErrUserNotFound
+		} else {
+			logger.WithError(result.Error).Error("Could not query for user in database")
+
+			return nil, result.Error
+		}
+	}
+
+	logger.Debug("User found")
+
+	return user, nil
+}

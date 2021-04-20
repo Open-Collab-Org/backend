@@ -1,3 +1,6 @@
+// NOTE: take a look at the projects redis documentation (docs/redis.md)
+// to better understand how session tokens are stored.
+
 package auth
 
 import (
@@ -28,29 +31,15 @@ func (s *Service) AuthenticateUser(ctx context.Context, authUser LoginDto) (*use
 	logger := log.FromContext(ctx).
 		WithField("username", authUser.UsernameOrEmail)
 
-	logger.Debug("Attempting to authenticate user")
+	logger.Debug("Authenticating user")
+	logger.Debug("Searching for user")
 
-	logger.Debug("Searching for user in database")
-
-	user := &users.User{}
-	result := s.Db.
-		Where("username = ?", authUser.UsernameOrEmail).
-		Or("email = ?", authUser.UsernameOrEmail).
-		First(user)
-
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			logger.Debug("User not found")
-
-			return nil, users.ErrUserNotFound
-		} else {
-			logger.WithError(result.Error).Error("Could not query for user in database")
-
-			return nil, result.Error
-		}
+	user, err := s.UsersService.FindUserByUsernameOrEmail(ctx, authUser.UsernameOrEmail)
+	if err != nil {
+		logger.WithError(err).Error("Failed to authenticate user")
 	}
 
-	logger.Debug("User found, comparing passwords")
+	logger.Debug("Comparing passwords")
 
 	passwordMatch, err := user.ComparePassword(authUser.Password)
 	if err != nil {
@@ -115,12 +104,18 @@ func (s *Service) CreateSession(ctx context.Context, userId uint) (string, error
 	// 1 month
 	keyDuration := time.Hour * 24 * 30
 
+	// Do everything in a transaction so that we don't end up
+	// with a corrupted state.
 	err = s.Redis.Watch(ctx, func(tx *redis.Tx) error {
+		// Create the session token's key
 		err = s.Redis.Set(ctx, sessionRedisKey(sessionKey.String()), userId, keyDuration).Err()
 		if err != nil {
 			return err
 		}
 
+		// Add the session token to the user's session token inverted index. This inverted
+		// index exists so that we can find all active sessions of a user and delete them.
+		// Take a look at InvalidateSessions.
 		err = s.Redis.SAdd(ctx, sessionInvertedIndexRedisKey(userId), sessionKey).Err()
 		if err != nil {
 			return err
@@ -145,6 +140,9 @@ func (s *Service) InvalidateSessions(ctx context.Context, userId uint) error {
 
 	var sessionsSet []string
 
+	// Get all session tokens of the user by getting the user's
+	// sessions inverted index. It's basically a set that contains
+	// all of the user's sessions.
 	redisKey := sessionInvertedIndexRedisKey(userId)
 	err := s.Redis.GetSet(ctx, redisKey, &sessionsSet).Err()
 	if err != nil {
@@ -152,10 +150,18 @@ func (s *Service) InvalidateSessions(ctx context.Context, userId uint) error {
 		return err
 	}
 
+	// Convert the session tokens (which are just UUIDs) into
+	// their respective redis keys so that we can delete them.
+	// E.g.: convert
+	//  "2c816d07-9499-4907-8ea3-1785dfa0f9a0"
+	// into
+	//  "session:2c816d07-9499-4907-8ea3-1785dfa0f9a0:user.id"
 	for i, key := range sessionsSet {
 		sessionsSet[i] = sessionRedisKey(key)
 	}
 
+	// Delete the session token keys and the user's
+	// sessions inverted index.
 	keysToDelete := append([]string{}, sessionsSet...)
 	keysToDelete = append(keysToDelete, redisKey)
 
