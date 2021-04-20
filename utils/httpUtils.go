@@ -12,7 +12,7 @@ import (
 
 // Read the request body as JSON and unmarshal it into `dto`.
 // The request body is unmarshalled with json.Unmarshal.
-func ReadJson(request *http.Request, ctx context.Context, dto interface{}) error {
+func ReadJson(ctx context.Context, request *http.Request, dto interface{}) error {
 	logger := log.FromContext(ctx)
 
 	bodyBytes, err := ReadBody(request)

@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"fmt"
 	"github.com/apex/log"
 	"github.com/open-collaboration/server/dtos"
@@ -16,18 +15,17 @@ import (
 // @Param userData body dtos.NewUserDto true "The user's data"
 // @Success 201
 func RouteRegisterUser(
-	ctx context.Context,
 	writer http.ResponseWriter,
 	request *http.Request,
 	usersService *services.UsersService,
 ) error {
 	dto := dtos.NewUserDto{}
-	err := utils.ReadJson(request, ctx, &dto)
+	err := utils.ReadJson(request.Context(), request, &dto)
 	if err != nil {
 		return err
 	}
 
-	err = usersService.CreateUser(ctx, dto)
+	err = usersService.CreateUser(request.Context(), dto)
 	if err != nil {
 		return err
 	}
@@ -45,16 +43,17 @@ func RouteRegisterUser(
 // @Header 200 {string} Set-Cookie "Session token. E.g. sessionToken=72f34c69-6eb0-47cf-83ed-c2b5ad3989df"
 // @Failure 401
 func RouteAuthenticateUser(
-	ctx context.Context,
 	writer http.ResponseWriter,
 	request *http.Request,
 	usersService *services.UsersService,
 	authService *services.AuthService,
 ) error {
+	ctx := request.Context()
+
 	logger := log.FromContext(ctx)
 
 	dto := dtos.LoginDto{}
-	err := utils.ReadJson(request, ctx, &dto)
+	err := utils.ReadJson(ctx, request, &dto)
 	if err != nil {
 		return err
 	}

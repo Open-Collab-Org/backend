@@ -2,12 +2,15 @@ package routes
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ItsaMeTuni/godi"
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
 	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/utils"
 	"net/http"
 	"reflect"
 )
@@ -22,7 +25,6 @@ func SetupRoutes(providers []interface{}) *mux.Router {
 	rootRouter := mux.NewRouter()
 
 	rootRouter.Use(middleware.LoggingMiddleware)
-	rootRouter.Use(middleware.ErrorHandlingMiddleware)
 	rootRouter.Use(middleware.CorsMiddleware)
 
 	authService := getProvider(providers, (*services.AuthService)(nil)).(*services.AuthService)
@@ -69,7 +71,6 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 
 		reqProviders := append(
 			godi.Providers{
-				ctx,
 				writer,
 				request,
 			},
@@ -96,7 +97,45 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 // 400 response with an error description.
 // All other errors return a 500 without a body.
 func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr error) {
+	logger := log.FromContext(ctx)
 
+	if routeErr != nil {
+		code := "unknown-error"
+		details := map[string]interface{}{}
+
+		logger.WithError(routeErr).Debug("Route resulted in error")
+
+		var status int
+
+		switch e := routeErr.(type) {
+		default:
+			if errors.Is(routeErr, middleware.ErrUnauthenticated) {
+				status = http.StatusUnauthorized
+				code = "unauthenticated-error"
+			} else {
+				status = http.StatusInternalServerError
+			}
+
+		case *json.SyntaxError:
+			code = "json-syntax-error"
+			details["offset"] = fmt.Sprintf("%d", e.Offset)
+			status = http.StatusBadRequest
+
+		case *json.UnmarshalTypeError:
+			code = "json-type-error"
+			details["field"] = e.Field
+			status = http.StatusBadRequest
+
+		}
+
+		err := utils.WriteJson(writer, ctx, status, map[string]interface{}{
+			"code":    code,
+			"details": details,
+		})
+		if err != nil {
+			logger.WithError(err).Error("Failed to write error response")
+		}
+	}
 }
 
 // Log a route declaration in the format "Route: [METHOD] <path>".

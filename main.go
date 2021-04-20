@@ -83,6 +83,8 @@ func main() {
 		Handler: router,
 	}
 
+	log.Infof("Serving at %s", server.Addr)
+
 	// Start server
 	err = server.ListenAndServe()
 	if err != nil {

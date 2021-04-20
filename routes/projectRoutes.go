@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
@@ -20,7 +19,6 @@ import (
 // @Param project body dtos.NewProjectDto true "Project data"
 // @Success 200 {object} dtos.ProjectSummaryDto.
 func RouteCreateProject(
-	ctx context.Context,
 	writer http.ResponseWriter,
 	request *http.Request,
 	projectsService *services.ProjectsService,
@@ -31,7 +29,7 @@ func RouteCreateProject(
 	}
 
 	dto := dtos.NewProjectDto{}
-	err = utils.ReadJson(request, ctx, &dto)
+	err = utils.ReadJson(request.Context(), request, &dto)
 	if err != nil {
 		return err
 	}
@@ -45,7 +43,7 @@ func RouteCreateProject(
 
 	writer.Header().Set("Location", "/projects/"+strconv.Itoa(int(createdProject.ID)))
 
-	err = utils.WriteJson(writer, ctx, http.StatusCreated, projectSummary)
+	err = utils.WriteJson(writer, request.Context(), http.StatusCreated, projectSummary)
 	if err != nil {
 		return err
 	}
@@ -80,7 +78,7 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 		pageOffset = 0
 	}
 
-	projectSummaries, err := projectsService.ListProjects(context.TODO(), uint(pageSize), uint(pageOffset), tags, []string{})
+	projectSummaries, err := projectsService.ListProjects(request.Context(), uint(pageSize), uint(pageOffset), tags, []string{})
 	if err != nil {
 		return err
 	}
@@ -89,7 +87,7 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 		projectSummaries[i].Skills = pq.StringArray{}
 	}
 
-	err = utils.WriteJson(writer, context.TODO(), http.StatusOK, projectSummaries)
+	err = utils.WriteJson(writer, request.Context(), http.StatusOK, projectSummaries)
 	if err != nil {
 		return err
 	}
@@ -114,7 +112,7 @@ func RouteGetProject(writer http.ResponseWriter, request *http.Request, projects
 		projectId = uint(id)
 	}
 
-	dto, err := projectsService.GetProject(context.TODO(), projectId)
+	dto, err := projectsService.GetProject(request.Context(), projectId)
 	if err != nil {
 		if errors.Is(err, services.ProjectNotFoundError) {
 			writer.WriteHeader(404)
@@ -124,7 +122,7 @@ func RouteGetProject(writer http.ResponseWriter, request *http.Request, projects
 		}
 	}
 
-	err = utils.WriteJson(writer, context.TODO(), http.StatusOK, dto)
+	err = utils.WriteJson(writer, request.Context(), http.StatusOK, dto)
 	if err != nil {
 		return err
 	}
