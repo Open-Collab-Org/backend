@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ItsaMeTuni/godi"
 	"github.com/apex/log"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/open-collaboration/server/auth"
 	"github.com/open-collaboration/server/projects"
@@ -125,9 +126,15 @@ func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr 
 
 		case *json.UnmarshalTypeError:
 			code = "json-type-error"
-			details["field"] = e.Field
+			details[e.Field] = e.Error()
 			status = http.StatusBadRequest
 
+		case validator.ValidationErrors:
+			code = "validation-error"
+			for _, fieldError := range e {
+				details[fieldError.StructField()] = fieldError.Tag()
+			}
+			status = http.StatusBadRequest
 		}
 
 		err := utils.WriteJson(writer, ctx, status, map[string]interface{}{

@@ -3,19 +3,19 @@ package projects
 import "github.com/lib/pq"
 
 type NewProjectDto struct {
-	Name             string   `json:"name" binding:"required,min=4,max=32"`
-	Tags             []string `json:"tags" binding:"required,min=1,max=6,dive,min=1,max=40"`
-	LongDescription  string   `json:"longDescription" binding:"required,min=200,max=10000"`
-	ShortDescription string   `json:"shortDescription" binding:"required,min=10,max=200"`
-	GithubLink       string   `json:"githubLink" binding:"required"`
+	Name             string   `json:"name" validate:"required,min=4,max=32"`
+	Tags             []string `json:"tags" validate:"required,min=1,max=6,dive,min=1,max=40"`
+	LongDescription  string   `json:"longDescription" validate:"required,min=200,max=10000"`
+	ShortDescription string   `json:"shortDescription" validate:"required,min=10,max=200"`
+	GithubLink       string   `json:"githubLink" validate:"required"`
 }
 
 type ProjectSummaryDto struct {
-	Id               uint           `json:"id" binding:""`
-	Name             string         `json:"name" binding:"required"`
-	Tags             pq.StringArray `json:"tags" binding:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
-	ShortDescription string         `json:"shortDescription" binding:"required"`
-	Skills           pq.StringArray `json:"skills" binding:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
+	Id               uint           `json:"id" validate:""`
+	Name             string         `json:"name" validate:"required"`
+	Tags             pq.StringArray `json:"tags" validate:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
+	ShortDescription string         `json:"shortDescription" validate:"required"`
+	Skills           pq.StringArray `json:"skills" validate:"required" gorm:"type: TEXT[]" swaggertype:"array,string"`
 }
 
 type ProjectDto struct {

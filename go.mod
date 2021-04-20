@@ -7,6 +7,7 @@ require (
 	github.com/apex/log v1.9.0
 	github.com/fatih/color v1.9.0
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
+	github.com/go-playground/validator/v10 v10.5.0 // indirect
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.8.0

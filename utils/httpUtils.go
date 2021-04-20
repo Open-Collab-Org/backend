@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/apex/log"
+	"github.com/go-playground/validator/v10"
 	"io"
 	"net/http"
 	"strconv"
@@ -24,6 +25,12 @@ func ReadJson(ctx context.Context, request *http.Request, dto interface{}) error
 	err = json.Unmarshal(bodyBytes, dto)
 	if err != nil {
 		logger.WithError(err).Info("Failed to unmarshal json")
+		return err
+	}
+
+	validate := validator.New()
+	err = validate.Struct(dto)
+	if err != nil {
 		return err
 	}
 
