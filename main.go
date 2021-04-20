@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/apex/log"
-	"github.com/apex/log/handlers/cli"
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
 	"github.com/open-collaboration/server/auth"
@@ -15,6 +14,7 @@ import (
 	"github.com/open-collaboration/server/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"net/http"
 	"os"
 )
@@ -23,7 +23,7 @@ func main() {
 
 	// Setup logging
 	log.SetLevel(log.DebugLevel)
-	log.SetHandler(cli.New(os.Stdout))
+	log.SetHandler(utils.NewTerminalLogger(os.Stdout))
 
 	// Load env variables
 	err := godotenv.Load()
@@ -40,11 +40,15 @@ func main() {
 	pgDbName := os.Getenv("PG_DB_NAME")
 
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", pgHost, pgPort, pgUser, pgPassword, pgDbName)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Interface(&utils.GormLogger{}),
+	})
 	if err != nil {
 		log.WithError(err).Error("Failed to connect to database.")
 		panic(err)
 	}
+
+	db = db.Debug()
 
 	// Run db migrations
 	migration := migrations.GetMigration(db)
