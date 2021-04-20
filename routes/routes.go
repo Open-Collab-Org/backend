@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/ItsaMeTuni/godi"
 	"github.com/apex/log"
-	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/open-collaboration/server/middleware"
 	"github.com/open-collaboration/server/services"
@@ -22,6 +21,7 @@ type RouteResponse struct {
 func SetupRoutes(providers []interface{}) *mux.Router {
 	rootRouter := mux.NewRouter()
 
+	rootRouter.Use(middleware.LoggingMiddleware)
 	rootRouter.Use(middleware.ErrorHandlingMiddleware)
 	rootRouter.Use(middleware.CorsMiddleware)
 
@@ -64,21 +64,8 @@ func createRouteHandler(handler interface{}, providers []interface{}) func(http.
 	}
 
 	return func(writer http.ResponseWriter, request *http.Request) {
-		requestId, err := uuid.NewV4()
-		if err != nil {
-			log.WithError(err).Error("Failed to generate a request id.")
-			writer.WriteHeader(500)
-
-			return
-		}
-
-		ctx := context.Background()
-		logger := log.WithFields(log.Fields{
-			"requestId": requestId,
-		})
-		ctx = log.NewContext(ctx, logger)
-
-		logRouteExecution(request, ctx)
+		ctx := request.Context()
+		logger := log.FromContext(ctx)
 
 		reqProviders := append(
 			godi.Providers{
@@ -130,13 +117,6 @@ func logRouteDeclaration(route *mux.Route, _ *mux.Router, _ []*mux.Route) error 
 	log.Infof("Route: %s %s", methods, pathTemplate)
 
 	return nil
-}
-
-// Log the start of the execution of a route handler.
-func logRouteExecution(request *http.Request, ctx context.Context) {
-	logger := log.FromContext(ctx)
-
-	logger.Infof("Processing %s request to %s", request.Method, request.URL)
 }
 
 func getProvider(providers []interface{}, providerType interface{}) interface{} {
