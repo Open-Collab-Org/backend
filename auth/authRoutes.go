@@ -1,39 +1,12 @@
-package routes
+package auth
 
 import (
 	"fmt"
 	"github.com/apex/log"
-	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/users"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
 )
-
-// @Summary Register a new user
-// @Tags users
-// @Router /users [post]
-// @Param userData body dtos.NewUserDto true "The user's data"
-// @Success 201
-func RouteRegisterUser(
-	writer http.ResponseWriter,
-	request *http.Request,
-	usersService *services.UsersService,
-) error {
-	dto := dtos.NewUserDto{}
-	err := utils.ReadJson(request.Context(), request, &dto)
-	if err != nil {
-		return err
-	}
-
-	err = usersService.CreateUser(request.Context(), dto)
-	if err != nil {
-		return err
-	}
-
-	writer.WriteHeader(201)
-
-	return nil
-}
 
 // @Summary Authenticate user
 // @Tags users
@@ -45,20 +18,19 @@ func RouteRegisterUser(
 func RouteAuthenticateUser(
 	writer http.ResponseWriter,
 	request *http.Request,
-	usersService *services.UsersService,
-	authService *services.AuthService,
+	authService *Service,
 ) error {
 	ctx := request.Context()
 
 	logger := log.FromContext(ctx)
 
-	dto := dtos.LoginDto{}
+	dto := LoginDto{}
 	err := utils.ReadJson(ctx, request, &dto)
 	if err != nil {
 		return err
 	}
 
-	user, err := usersService.AuthenticateUser(ctx, dto)
+	user, err := authService.AuthenticateUser(ctx, dto)
 	if err != nil {
 		return err
 	}
@@ -69,7 +41,7 @@ func RouteAuthenticateUser(
 			logger.WithError(err).Error("Failed to create session")
 		}
 
-		userData := dtos.UserDataDto{
+		userData := users.UserDataDto{
 			Username: user.Username,
 			Email:    user.Email,
 		}

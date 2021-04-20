@@ -1,4 +1,4 @@
-package routes
+package router
 
 import (
 	"context"
@@ -8,8 +8,10 @@ import (
 	"github.com/ItsaMeTuni/godi"
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
-	"github.com/open-collaboration/server/middleware"
-	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/auth"
+	"github.com/open-collaboration/server/projects"
+	"github.com/open-collaboration/server/router/middleware"
+	"github.com/open-collaboration/server/users"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
 	"reflect"
@@ -27,15 +29,15 @@ func SetupRoutes(providers []interface{}) *mux.Router {
 	rootRouter.Use(middleware.LoggingMiddleware)
 	rootRouter.Use(middleware.CorsMiddleware)
 
-	authService := getProvider(providers, (*services.AuthService)(nil)).(*services.AuthService)
-	rootRouter.Use(middleware.SessionMiddleware(authService))
+	authService := getProvider(providers, (*auth.Service)(nil)).(*auth.Service)
+	rootRouter.Use(auth.SessionMiddleware(authService))
 
 	// Setup routes
-	rootRouter.HandleFunc("/users", createRouteHandler(RouteRegisterUser, providers)).Methods("POST")
-	rootRouter.HandleFunc("/login", createRouteHandler(RouteAuthenticateUser, providers)).Methods("POST")
-	rootRouter.HandleFunc("/projects", createRouteHandler(RouteListProjects, providers)).Methods("GET")
-	rootRouter.HandleFunc("/projects", createRouteHandler(RouteCreateProject, providers)).Methods("POST")
-	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(RouteGetProject, providers)).Methods("GET")
+	rootRouter.HandleFunc("/users", createRouteHandler(users.RouteRegisterUser, providers)).Methods("POST")
+	rootRouter.HandleFunc("/login", createRouteHandler(auth.RouteAuthenticateUser, providers)).Methods("POST")
+	rootRouter.HandleFunc("/projects", createRouteHandler(projects.RouteListProjects, providers)).Methods("GET")
+	rootRouter.HandleFunc("/projects", createRouteHandler(projects.RouteCreateProject, providers)).Methods("POST")
+	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(projects.RouteGetProject, providers)).Methods("GET")
 
 	// Swagger
 	swaggerUi := http.FileServer(http.Dir("swagger-ui/"))
@@ -109,7 +111,7 @@ func handleRouteError(writer http.ResponseWriter, ctx context.Context, routeErr 
 
 		switch e := routeErr.(type) {
 		default:
-			if errors.Is(routeErr, middleware.ErrUnauthenticated) {
+			if errors.Is(routeErr, auth.ErrUnauthenticated) {
 				status = http.StatusUnauthorized
 				code = "unauthenticated-error"
 			} else {

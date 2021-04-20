@@ -1,23 +1,21 @@
-package services
+package projects
 
 import (
 	"context"
 	"errors"
 	"github.com/apex/log"
 	"github.com/lib/pq"
-	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/models"
 	"gorm.io/gorm"
 )
 
-type ProjectsService struct {
+type Service struct {
 	Db *gorm.DB
 }
 
 var ProjectNotFoundError = errors.New("project not found")
 
-func (s *ProjectsService) CreateProject(newProject dtos.NewProjectDto) (*models.Project, error) {
-	project := models.Project{
+func (s *Service) CreateProject(newProject NewProjectDto) (*Project, error) {
+	project := Project{
 		Name:             newProject.Name,
 		Tags:             newProject.Tags,
 		LongDescription:  newProject.LongDescription,
@@ -34,8 +32,8 @@ func (s *ProjectsService) CreateProject(newProject dtos.NewProjectDto) (*models.
 }
 
 // Get the given project's summary
-func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.ProjectSummaryDto {
-	return dtos.ProjectSummaryDto{
+func (s *Service) GetProjectSummary(project *Project) ProjectSummaryDto {
+	return ProjectSummaryDto{
 		Id:               project.ID,
 		Name:             project.Name,
 		Tags:             project.Tags,
@@ -45,27 +43,27 @@ func (s *ProjectsService) GetProjectSummary(project *models.Project) dtos.Projec
 
 // Get a project by id.
 // Returns ProjectNotFoundError if the project can't be found.
-func (s *ProjectsService) GetProject(ctx context.Context, projectId uint) (dtos.ProjectDto, error) {
+func (s *Service) GetProject(ctx context.Context, projectId uint) (ProjectDto, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Debugf("Querying for project of id %d", projectId)
 
-	project := models.Project{}
+	project := Project{}
 	result := s.Db.First(&project, projectId)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			logger.Debugf("Project of id %d was not found", projectId)
-			return dtos.ProjectDto{}, ProjectNotFoundError
+			return ProjectDto{}, ProjectNotFoundError
 		} else {
 			logger.WithError(result.Error).Errorf("Failed to query for project of id %d", projectId)
-			return dtos.ProjectDto{}, result.Error
+			return ProjectDto{}, result.Error
 		}
 	}
 
 	logger.Debugf("Project of id %d was found", projectId)
 
-	return dtos.ProjectDto{
+	return ProjectDto{
 		Id:               project.ID,
 		Name:             project.Name,
 		Tags:             project.Tags,
@@ -88,13 +86,13 @@ func (s *ProjectsService) GetProject(ctx context.Context, projectId uint) (dtos.
 // tags will be returned. If skills is specified (non-nil and non-empty), any projects
 // that have at least one role that require at least one of the specified skills will
 // be returned.
-func (s *ProjectsService) ListProjects(
+func (s *Service) ListProjects(
 	ctx context.Context,
 	pageSize uint,
 	pageOffset uint,
 	tags []string,
 	skills []string,
-) ([]dtos.ProjectSummaryDto, error) {
+) ([]ProjectSummaryDto, error) {
 	logger := log.FromContext(ctx)
 
 	logger.WithFields(log.Fields{
@@ -113,9 +111,9 @@ func (s *ProjectsService) ListProjects(
 		skills = []string{}
 	}
 
-	projectSummaries := make([]dtos.ProjectSummaryDto, pageSize)
+	projectSummaries := make([]ProjectSummaryDto, pageSize)
 	result := s.Db.
-		Model(&models.Project{}).
+		Model(&Project{}).
 		Select("name", "tags", "short_description", "id").
 		Where("cardinality(?::TEXT[]) < 1 OR tags && ?", pq.StringArray(tags), pq.StringArray(tags)).
 		Order("created_at desc").

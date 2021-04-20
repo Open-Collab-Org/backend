@@ -1,4 +1,4 @@
-package dtos
+package projects
 
 import "github.com/lib/pq"
 

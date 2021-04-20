@@ -1,4 +1,4 @@
-package dtos
+package router
 
 type ErrorDto struct {
 	ErrorCode    string      `json:"errorCode"`

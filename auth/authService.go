@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"context"
@@ -7,21 +7,70 @@ import (
 	"github.com/apex/log"
 	"github.com/go-redis/redis/v8"
 	"github.com/gofrs/uuid"
+	"github.com/open-collaboration/server/users"
 	"gorm.io/gorm"
 	"time"
 )
 
 var ErrInvalidSessionToken = errors.New("invalid session key")
+var ErrWrongPassword = errors.New("wrong password")
 
-type AuthService struct {
+type Service struct {
 	Db           *gorm.DB
 	Redis        *redis.Client
-	UsersService *UsersService
+	UsersService *users.Service
+}
+
+// Authenticate a user with username or email and a password.
+// Returns ErrUserNotFound if a user with a matching username/email and password pair cannot be found.
+// Returns ErrWrongPassword if the hashed password does not equal the user's stored password hash.
+func (s *Service) AuthenticateUser(ctx context.Context, authUser LoginDto) (*users.User, error) {
+	logger := log.FromContext(ctx).
+		WithField("username", authUser.UsernameOrEmail)
+
+	logger.Debug("Attempting to authenticate user")
+
+	logger.Debug("Searching for user in database")
+
+	user := &users.User{}
+	result := s.Db.
+		Where("username = ?", authUser.UsernameOrEmail).
+		Or("email = ?", authUser.UsernameOrEmail).
+		First(user)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Debug("User not found")
+
+			return nil, users.ErrUserNotFound
+		} else {
+			logger.WithError(result.Error).Error("Could not query for user in database")
+
+			return nil, result.Error
+		}
+	}
+
+	logger.Debug("User found, comparing passwords")
+
+	passwordMatch, err := user.ComparePassword(authUser.Password)
+	if err != nil {
+		logger.WithError(err).Error("Error comparing passwords")
+
+		return nil, err
+	} else if passwordMatch {
+		logger.Debug("Passwords match, user authenticated")
+
+		return user, nil
+	} else {
+		logger.Debug("Wrong password")
+
+		return nil, ErrWrongPassword
+	}
 }
 
 // Check if a session exists and, if it does, return the session's user.
 // Returns ErrInvalidSessionToken if the session does not exist.
-func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string) (uint, error) {
+func (s *Service) AuthenticateSession(ctx context.Context, sessionKey string) (uint, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Debug("Checking for session in redis")
@@ -46,7 +95,7 @@ func (s *AuthService) AuthenticateSession(ctx context.Context, sessionKey string
 }
 
 // Create a session key for a user. The session key will last 30 days.
-func (s *AuthService) CreateSession(ctx context.Context, userId uint) (string, error) {
+func (s *Service) CreateSession(ctx context.Context, userId uint) (string, error) {
 	logger := log.FromContext(ctx)
 
 	logger.
@@ -89,7 +138,7 @@ func (s *AuthService) CreateSession(ctx context.Context, userId uint) (string, e
 }
 
 // Invalidate (delete) all sessions of a user.
-func (s *AuthService) InvalidateSessions(ctx context.Context, userId uint) error {
+func (s *Service) InvalidateSessions(ctx context.Context, userId uint) error {
 	logger := log.FromContext(ctx).WithField("userId", userId)
 
 	logger.Debug("Invalidating all sessions of user")

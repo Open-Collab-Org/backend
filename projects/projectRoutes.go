@@ -1,12 +1,10 @@
-package routes
+package projects
 
 import (
 	"errors"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
-	"github.com/open-collaboration/server/dtos"
-	"github.com/open-collaboration/server/middleware"
-	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/auth"
 	"github.com/open-collaboration/server/utils"
 	"net/http"
 	"strconv"
@@ -21,14 +19,14 @@ import (
 func RouteCreateProject(
 	writer http.ResponseWriter,
 	request *http.Request,
-	projectsService *services.ProjectsService,
+	projectsService *Service,
 ) error {
-	_, err := middleware.CheckSession(request)
+	_, err := auth.CheckSession(request)
 	if err != nil {
 		return err
 	}
 
-	dto := dtos.NewProjectDto{}
+	dto := NewProjectDto{}
 	err = utils.ReadJson(request.Context(), request, &dto)
 	if err != nil {
 		return err
@@ -57,7 +55,7 @@ func RouteCreateProject(
 // @Param pageSize query int false "Maximum amount of projects in the response. Default is 20, max is 20."
 // @Param pageOffset query int false "Response page number. If pageSize is 20 and pageOffset is 2, the first 40 projects will be skipped."
 // @Success 200 {object} dtos.ProjectSummaryDto.
-func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
+func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService *Service) error {
 	// TODO: move hardcoded maximum and default page size values to
 	// 	an env variable
 	pageSize, _ := utils.IntFromQuery(request, "pageSize", 20)
@@ -100,7 +98,7 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 // @Router /projects/{id} [get]
 // @Param id path int true "The project ID"
 // @Success 200 {object} dtos.ProjectDto.
-func RouteGetProject(writer http.ResponseWriter, request *http.Request, projectsService *services.ProjectsService) error {
+func RouteGetProject(writer http.ResponseWriter, request *http.Request, projectsService *Service) error {
 	var projectId uint
 	vars := mux.Vars(request)
 	if idStr, ok := vars["projectId"]; ok {
@@ -114,7 +112,7 @@ func RouteGetProject(writer http.ResponseWriter, request *http.Request, projects
 
 	dto, err := projectsService.GetProject(request.Context(), projectId)
 	if err != nil {
-		if errors.Is(err, services.ProjectNotFoundError) {
+		if errors.Is(err, ProjectNotFoundError) {
 			writer.WriteHeader(404)
 			return nil
 		} else {

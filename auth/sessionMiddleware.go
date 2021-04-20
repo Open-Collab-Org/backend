@@ -1,11 +1,10 @@
-package middleware
+package auth
 
 import (
 	"context"
 	"errors"
 	"github.com/apex/log"
 	"github.com/gorilla/mux"
-	"github.com/open-collaboration/server/services"
 	"net/http"
 )
 
@@ -20,7 +19,7 @@ var ErrUnauthenticated = errors.New("unauthenticated")
 // exists and is valid, a session is added to the request's context.
 // You can get the session with
 //	r.Context().Value(Session{})
-func SessionMiddleware(authService *services.AuthService) mux.MiddlewareFunc {
+func SessionMiddleware(authService *Service) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := log.FromContext(r.Context())
@@ -31,7 +30,7 @@ func SessionMiddleware(authService *services.AuthService) mux.MiddlewareFunc {
 
 			session, err := getSessionFromRequest(r, authService)
 			if err != nil {
-				if !errors.Is(err, http.ErrNoCookie) && !errors.Is(err, services.ErrInvalidSessionToken) {
+				if !errors.Is(err, http.ErrNoCookie) && !errors.Is(err, ErrInvalidSessionToken) {
 					logger.WithError(err).Error("Failed to get request's session")
 					w.WriteHeader(http.StatusInternalServerError)
 
@@ -50,7 +49,7 @@ func SessionMiddleware(authService *services.AuthService) mux.MiddlewareFunc {
 // Get a Session from the request. Returns an http.ErrNoCookie if the cookie is not set
 // or services.ErrInvalidSessionToken if the session token is invalid. Otherwise a Session
 // is returned.
-func getSessionFromRequest(r *http.Request, authService *services.AuthService) (Session, error) {
+func getSessionFromRequest(r *http.Request, authService *Service) (Session, error) {
 	sessionToken, err := r.Cookie("sessionToken")
 	if err != nil {
 		return Session{}, err

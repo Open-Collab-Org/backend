@@ -7,9 +7,11 @@ import (
 	"github.com/apex/log/handlers/cli"
 	"github.com/go-redis/redis/v8"
 	"github.com/joho/godotenv"
+	"github.com/open-collaboration/server/auth"
 	"github.com/open-collaboration/server/migrations"
-	"github.com/open-collaboration/server/routes"
-	"github.com/open-collaboration/server/services"
+	"github.com/open-collaboration/server/projects"
+	router2 "github.com/open-collaboration/server/router"
+	"github.com/open-collaboration/server/users"
 	"github.com/open-collaboration/server/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -66,15 +68,15 @@ func main() {
 	}
 
 	// Setup server
-	usersService := &services.UsersService{Db: db}
+	usersService := &users.Service{Db: db}
 
 	providers := []interface{}{
-		&services.AuthService{Db: db, Redis: redisDb, UsersService: usersService},
+		&auth.Service{Db: db, Redis: redisDb, UsersService: usersService},
 		usersService,
-		&services.ProjectsService{Db: db},
+		&projects.Service{Db: db},
 	}
 
-	router := routes.SetupRoutes(providers[:])
+	router := router2.SetupRoutes(providers[:])
 
 	host := utils.GetEnvOrPanic("HOST")
 	port := utils.GetEnvOrPanic("PORT")
