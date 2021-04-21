@@ -8,7 +8,11 @@ Required tools:
 - python
 - [pip](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py)
 
-1. Install [`golangci-lint`](https://golangci-lint.run/usage/install/#local-installation)
+1. Install `gocyclo` and `gocritic`
+```
+go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+go install github.com/go-critic/go-critic/cmd/gocritic@latest
+```
 2. Install `pre-commit`
 ```
 pip install pre-commit && pre-commit install
@@ -16,8 +20,6 @@ pip install pre-commit && pre-commit install
 3. Install [`docker`](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
 4. Install [`docker-compose`](https://docs.docker.com/compose/install/#install-compose-on-linux-systems)
 
-
-> **Tip:** Install the Go Linter plugin for GoLand/VSCode
 
 
 ## Running the project

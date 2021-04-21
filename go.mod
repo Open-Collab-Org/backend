@@ -7,7 +7,7 @@ require (
 	github.com/apex/log v1.9.0
 	github.com/fatih/color v1.9.0
 	github.com/go-gormigrate/gormigrate/v2 v2.0.0
-	github.com/go-playground/validator/v10 v10.5.0 // indirect
+	github.com/go-playground/validator/v10 v10.5.0
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gorilla/mux v1.8.0
@@ -17,10 +17,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
 	golang.org/x/text v0.3.6 // indirect
-	golang.org/x/tools v0.1.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	gorm.io/driver/postgres v1.0.0
 	gorm.io/driver/sqlite v1.1.4 // indirect
