@@ -24,7 +24,7 @@ var ErrMissingParam = errors.New("missing parameter")
 func RouteCreateProject(
 	writer http.ResponseWriter,
 	request *http.Request,
-	projectsService *Service,
+	projectsService Service,
 ) error {
 	_, err := auth.CheckSession(request)
 	if err != nil {
@@ -60,7 +60,7 @@ func RouteCreateProject(
 func RouteUpdateProject(
 	writer http.ResponseWriter,
 	request *http.Request,
-	projectsService *Service,
+	projectsService Service,
 ) error {
 	logger := log.FromContext(request.Context())
 
@@ -127,7 +127,7 @@ func RouteUpdateProject(
 // @Param pageSize query int false "Maximum amount of projects in the response. Default is 20, max is 20."
 // @Param pageOffset query int false "Response page number. If pageSize is 20 and pageOffset is 2, the first 40 projects will be skipped."
 // @Success 200 {object} dtos.ProjectSummaryDto.
-func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService *Service) error {
+func RouteListProjects(writer http.ResponseWriter, request *http.Request, projectsService Service) error {
 	// TODO: move hardcoded maximum and default page size values to
 	// 	an env variable
 	pageSize, _ := utils.IntFromQuery(request, "pageSize", 20)
@@ -170,7 +170,7 @@ func RouteListProjects(writer http.ResponseWriter, request *http.Request, projec
 // @Router /projects/{id} [get]
 // @Param id path int true "The project ID"
 // @Success 200 {object} dtos.ProjectDto.
-func RouteGetProject(writer http.ResponseWriter, request *http.Request, projectsService *Service) error {
+func RouteGetProject(writer http.ResponseWriter, request *http.Request, projectsService Service) error {
 	var projectId uint
 	vars := mux.Vars(request)
 	if idStr, ok := vars["projectId"]; ok {

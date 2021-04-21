@@ -72,12 +72,12 @@ func main() {
 	}
 
 	// Setup server
-	usersService := &users.Service{Db: db}
+	usersService := users.NewService(db)
 
 	providers := []interface{}{
-		&auth.Service{Db: db, Redis: redisDb, UsersService: usersService},
+		auth.NewService(db, redisDb, usersService),
 		usersService,
-		&projects.Service{Db: db},
+		projects.NewService(db),
 	}
 
 	router := router2.SetupRoutes(providers[:])

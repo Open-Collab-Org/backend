@@ -9,12 +9,26 @@ import (
 
 var ErrUserNotFound = errors.New("user not found")
 
-type Service struct {
+type Service interface {
+	// Create a user.
+	CreateUser(ctx context.Context, newUser NewUserDto) error
+
+	// Get a user by id.
+	// Returns ErrUserNotFound if a user with the specified id cannot be found.
+	GetUser(ctx context.Context, id uint) (*User, error)
+
+	FindUserByUsernameOrEmail(ctx context.Context, usernameOrEmail string) (*User, error)
+}
+
+type serviceImpl struct {
 	Db *gorm.DB
 }
 
-// Create a user.
-func (s *Service) CreateUser(ctx context.Context, newUser NewUserDto) error {
+func NewService(db *gorm.DB) Service {
+	return &serviceImpl{Db: db}
+}
+
+func (s *serviceImpl) CreateUser(ctx context.Context, newUser NewUserDto) error {
 	user := User{
 		Username: newUser.Username,
 		Email:    newUser.Email,
@@ -33,9 +47,7 @@ func (s *Service) CreateUser(ctx context.Context, newUser NewUserDto) error {
 	return nil
 }
 
-// Get a user by id.
-// Returns ErrUserNotFound if a user with the specified id cannot be found.
-func (s *Service) GetUser(ctx context.Context, id uint) (*User, error) {
+func (s *serviceImpl) GetUser(ctx context.Context, id uint) (*User, error) {
 	logger := log.FromContext(ctx)
 
 	user := &User{}
@@ -55,7 +67,7 @@ func (s *Service) GetUser(ctx context.Context, id uint) (*User, error) {
 	return user, nil
 }
 
-func (s *Service) FindUserByUsernameOrEmail(ctx context.Context, usernameOrEmail string) (*User, error) {
+func (s *serviceImpl) FindUserByUsernameOrEmail(ctx context.Context, usernameOrEmail string) (*User, error) {
 	logger := log.FromContext(ctx).WithField("usernameOrEmail", usernameOrEmail)
 
 	logger.Debug("Searching for user on database")

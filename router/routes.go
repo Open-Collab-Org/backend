@@ -30,7 +30,7 @@ func SetupRoutes(providers []interface{}) *mux.Router {
 	rootRouter.Use(middleware.LoggingMiddleware)
 	rootRouter.Use(middleware.CorsMiddleware)
 
-	authService := getProvider(providers, (*auth.Service)(nil)).(*auth.Service)
+	authService := getProvider(providers, (*auth.Service)(nil)).(auth.Service)
 	rootRouter.Use(auth.SessionMiddleware(authService))
 
 	// Setup routes
@@ -168,8 +168,29 @@ func logRouteDeclaration(route *mux.Route, _ *mux.Router, _ []*mux.Route) error 
 	return nil
 }
 
+// Get a provider of the given type.
+// Example:
+//  providers := []interface{}{ &Foo{} }
+//  foo := getProvider(providers, &Foo{}).(*Foo)
+//
+// To get a provider through an interface type, you should use
+// a nil pointer to the interface as the provider type.
+// Example:
+//  type Foo struct {}
+//  type Bar interface {} // Foo implements Bar
+//  providers := []interface{}{ &Foo{} }
+//  bar := getProvider(providers, (*Bar)(nil)).(Bar)
+//
+// Note: pointers to interfaces are handled differently. If you provide
+// a pointer to an interface (e.g. *Bar), getProvider will try to find a
+// provider that implements the interface (Bar), not a provider that is a pointer
+// to a Bar (*Bar).
 func getProvider(providers []interface{}, providerType interface{}) interface{} {
 	pType := reflect.TypeOf(providerType)
+
+	if pType.Kind() == reflect.Ptr && pType.Elem().Kind() == reflect.Interface {
+		pType = pType.Elem()
+	}
 
 	for _, provider := range providers {
 		if reflect.TypeOf(provider).AssignableTo(pType) {

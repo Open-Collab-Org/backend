@@ -19,7 +19,7 @@ var ErrUnauthenticated = errors.New("unauthenticated")
 // exists and is valid, a session is added to the request's context.
 // You can get the session with
 //	r.Context().Value(Session{})
-func SessionMiddleware(authService *Service) mux.MiddlewareFunc {
+func SessionMiddleware(authService Service) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := log.FromContext(r.Context())
@@ -49,7 +49,7 @@ func SessionMiddleware(authService *Service) mux.MiddlewareFunc {
 // Get a Session from the request. Returns an http.ErrNoCookie if the cookie is not set
 // or services.ErrInvalidSessionToken if the session token is invalid. Otherwise a Session
 // is returned.
-func getSessionFromRequest(r *http.Request, authService *Service) (Session, error) {
+func getSessionFromRequest(r *http.Request, authService Service) (Session, error) {
 	sessionToken, err := r.Cookie("sessionToken")
 	if err != nil {
 		return Session{}, err

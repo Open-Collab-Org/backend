@@ -9,13 +9,50 @@ import (
 	"gorm.io/gorm"
 )
 
-type Service struct {
+type Service interface {
+	CreateProject(newProject NewProjectDto) (*Project, error)
+	UpdateProject(projectId uint, projectData NewProjectDto) error
+
+	// Get the given project's summary
+	GetProjectSummary(project *Project) ProjectSummaryDto
+
+	// Get a project by id.
+	// Returns ErrProjectNotFound if the project can't be found.
+	GetProject(ctx context.Context, projectId uint) (ProjectDto, error)
+
+	// List all projects ordered by creation date, newest to oldest.
+	//
+	// Results are returned in "pages". A page is determined by the pageSize and
+	// pageOffset parameters. pageSize determines the maximum amount of projects
+	// that can be returned, and page offset determines how many pages (i.e. projects)
+	// to skip. For example: if pageSize is 20 and pageOffset is 3, a maximum of 20
+	// projects will be returned and 60 (3x20) projects will be skipped.
+	//
+	// You can also filter the results by tags and skills. If tags is specified
+	// (non-nil and non-empty), any projects that have at least one of the specified
+	// tags will be returned. If skills is specified (non-nil and non-empty), any projects
+	// that have at least one role that require at least one of the specified skills will
+	// be returned.
+	ListProjects(
+		ctx context.Context,
+		pageSize uint,
+		pageOffset uint,
+		tags []string,
+		skills []string,
+	) ([]ProjectSummaryDto, error)
+}
+
+func NewService(db *gorm.DB) Service {
+	return &serviceImpl{Db: db}
+}
+
+type serviceImpl struct {
 	Db *gorm.DB
 }
 
 var ErrProjectNotFound = errors.New("project not found")
 
-func (s *Service) CreateProject(newProject NewProjectDto) (*Project, error) {
+func (s *serviceImpl) CreateProject(newProject NewProjectDto) (*Project, error) {
 	err := validator.New().Struct(newProject)
 	if err != nil {
 		return nil, err
@@ -37,7 +74,7 @@ func (s *Service) CreateProject(newProject NewProjectDto) (*Project, error) {
 	return &project, nil
 }
 
-func (s *Service) UpdateProject(projectId uint, projectData NewProjectDto) error {
+func (s *serviceImpl) UpdateProject(projectId uint, projectData NewProjectDto) error {
 	err := validator.New().Struct(projectData)
 	if err != nil {
 		return err
@@ -66,8 +103,7 @@ func (s *Service) UpdateProject(projectId uint, projectData NewProjectDto) error
 	return nil
 }
 
-// Get the given project's summary
-func (s *Service) GetProjectSummary(project *Project) ProjectSummaryDto {
+func (s *serviceImpl) GetProjectSummary(project *Project) ProjectSummaryDto {
 	return ProjectSummaryDto{
 		Id:               project.ID,
 		Name:             project.Name,
@@ -76,9 +112,7 @@ func (s *Service) GetProjectSummary(project *Project) ProjectSummaryDto {
 	}
 }
 
-// Get a project by id.
-// Returns ErrProjectNotFound if the project can't be found.
-func (s *Service) GetProject(ctx context.Context, projectId uint) (ProjectDto, error) {
+func (s *serviceImpl) GetProject(ctx context.Context, projectId uint) (ProjectDto, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Debugf("Querying for project of id %d", projectId)
@@ -108,20 +142,7 @@ func (s *Service) GetProject(ctx context.Context, projectId uint) (ProjectDto, e
 	}, nil
 }
 
-// List all projects ordered by creation date, newest to oldest.
-//
-// Results are returned in "pages". A page is determined by the pageSize and
-// pageOffset parameters. pageSize determines the maximum amount of projects
-// that can be returned, and page offset determines how many pages (i.e. projects)
-// to skip. For example: if pageSize is 20 and pageOffset is 3, a maximum of 20
-// projects will be returned and 60 (3x20) projects will be skipped.
-//
-// You can also filter the results by tags and skills. If tags is specified
-// (non-nil and non-empty), any projects that have at least one of the specified
-// tags will be returned. If skills is specified (non-nil and non-empty), any projects
-// that have at least one role that require at least one of the specified skills will
-// be returned.
-func (s *Service) ListProjects(
+func (s *serviceImpl) ListProjects(
 	ctx context.Context,
 	pageSize uint,
 	pageOffset uint,

@@ -18,7 +18,7 @@ import (
 func RouteAuthenticateUser(
 	writer http.ResponseWriter,
 	request *http.Request,
-	authService *Service,
+	authService Service,
 ) error {
 	ctx := request.Context()
 

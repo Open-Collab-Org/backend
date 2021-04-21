@@ -13,7 +13,7 @@ import (
 func RouteRegisterUser(
 	writer http.ResponseWriter,
 	request *http.Request,
-	usersService *Service,
+	usersService Service,
 ) error {
 	dto := NewUserDto{}
 	err := utils.ReadJson(request.Context(), request, &dto)
