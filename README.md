@@ -1,3 +1,4 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/open-collaboration/server)](https://goreportcard.com/report/github.com/open-collaboration/server)
 
 ## Development environment setup
 
