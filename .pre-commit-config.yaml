@@ -1,10 +1,23 @@
 repos:
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v1.39.0
-    hooks:
-      - id: golangci-lint
-  - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: master
+#  - repo: https://github.com/golangci/golangci-lint
+#    rev: v1.39.0
+#    hooks:
+#      - id: golangci-lint
+#  - repo: https://github.com/tekwizely/pre-commit-golang
+#    rev: master
+#    hooks:
+#      - id: go-fmt
+#        args: [-w]
+  - repo: git://github.com/dnephin/pre-commit-golang
+    rev: ac0f6582d2484b3aa90b05d568e70f9f3c1374c7
     hooks:
       - id: go-fmt
-        args: [-w]
+      - id: go-vet
+      - id: go-lint
+      - id: go-imports
+      - id: go-cyclo
+        args: [-over=15]
+      - id: go-critic
+      - id: go-unit-tests
+      - id: go-mod-tidy
+      - id: go-build
