@@ -2,6 +2,8 @@ package projects
 
 import (
 	"errors"
+	"fmt"
+	"github.com/apex/log"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"github.com/open-collaboration/server/auth"
@@ -10,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 )
+
+var ErrInvalidParam = errors.New("invalid parameter")
+var ErrMissingParam = errors.New("missing parameter")
 
 // @Summary Create a project
 // @Tags projects
@@ -25,6 +30,9 @@ func RouteCreateProject(
 	if err != nil {
 		return err
 	}
+
+	// TODO: check if user already owns a project. If he/she does,
+	//	return an error.
 
 	dto := NewProjectDto{}
 	err = utils.ReadJson(request.Context(), request, &dto)
@@ -45,6 +53,70 @@ func RouteCreateProject(
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func RouteUpdateProject(
+	writer http.ResponseWriter,
+	request *http.Request,
+	projectsService *Service,
+) error {
+	logger := log.FromContext(request.Context())
+
+	_, err := auth.CheckSession(request)
+	if err != nil {
+		return err
+	}
+
+	var projectId uint
+	vars := mux.Vars(request)
+	if idStr, ok := vars["projectId"]; ok {
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			logger.
+				WithField("param", vars["projectId"]).
+				Debug("Failed to convert projectId param to integer")
+
+			return ErrInvalidParam
+		}
+
+		projectId = uint(id)
+	} else {
+		logger.
+			Debug("Missing projectId route param")
+
+		return ErrMissingParam
+	}
+
+	logger = logger.WithField("projectId", projectId)
+
+	logger.Debug("Updating project")
+
+	dto := NewProjectDto{}
+	err = utils.ReadJson(request.Context(), request, &dto)
+	if err != nil {
+		return err
+	}
+
+	// TODO: check if the user owns the project
+
+	project := NewProjectDto{
+		Name:             dto.Name,
+		Tags:             dto.Tags,
+		ShortDescription: dto.ShortDescription,
+		LongDescription:  dto.LongDescription,
+		GithubLink:       dto.GithubLink,
+	}
+	fmt.Printf("%#v", project)
+
+	err = projectsService.UpdateProject(projectId, project)
+	if err != nil {
+		logger.WithError(err).Error("Failed to update project")
+		return err
+	}
+
+	logger.Debug("Project updated")
 
 	return nil
 }
@@ -112,7 +184,7 @@ func RouteGetProject(writer http.ResponseWriter, request *http.Request, projects
 
 	dto, err := projectsService.GetProject(request.Context(), projectId)
 	if err != nil {
-		if errors.Is(err, ProjectNotFoundError) {
+		if errors.Is(err, ErrProjectNotFound) {
 			writer.WriteHeader(404)
 			return nil
 		} else {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/apex/log"
+	"github.com/go-playground/validator/v10"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
@@ -12,9 +13,14 @@ type Service struct {
 	Db *gorm.DB
 }
 
-var ProjectNotFoundError = errors.New("project not found")
+var ErrProjectNotFound = errors.New("project not found")
 
 func (s *Service) CreateProject(newProject NewProjectDto) (*Project, error) {
+	err := validator.New().Struct(newProject)
+	if err != nil {
+		return nil, err
+	}
+
 	project := Project{
 		Name:             newProject.Name,
 		Tags:             newProject.Tags,
@@ -31,6 +37,35 @@ func (s *Service) CreateProject(newProject NewProjectDto) (*Project, error) {
 	return &project, nil
 }
 
+func (s *Service) UpdateProject(projectId uint, projectData NewProjectDto) error {
+	err := validator.New().Struct(projectData)
+	if err != nil {
+		return err
+	}
+
+	project := Project{
+		Model: gorm.Model{
+			ID: projectId,
+		},
+		Name:             projectData.Name,
+		Tags:             projectData.Tags,
+		LongDescription:  projectData.LongDescription,
+		ShortDescription: projectData.ShortDescription,
+		GithubLink:       projectData.GithubLink,
+	}
+
+	result := s.Db.Save(&project)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return ErrProjectNotFound
+		} else {
+			return result.Error
+		}
+	}
+
+	return nil
+}
+
 // Get the given project's summary
 func (s *Service) GetProjectSummary(project *Project) ProjectSummaryDto {
 	return ProjectSummaryDto{
@@ -42,7 +77,7 @@ func (s *Service) GetProjectSummary(project *Project) ProjectSummaryDto {
 }
 
 // Get a project by id.
-// Returns ProjectNotFoundError if the project can't be found.
+// Returns ErrProjectNotFound if the project can't be found.
 func (s *Service) GetProject(ctx context.Context, projectId uint) (ProjectDto, error) {
 	logger := log.FromContext(ctx)
 
@@ -54,7 +89,7 @@ func (s *Service) GetProject(ctx context.Context, projectId uint) (ProjectDto, e
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			logger.Debugf("Project of id %d was not found", projectId)
-			return ProjectDto{}, ProjectNotFoundError
+			return ProjectDto{}, ErrProjectNotFound
 		} else {
 			logger.WithError(result.Error).Errorf("Failed to query for project of id %d", projectId)
 			return ProjectDto{}, result.Error

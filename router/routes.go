@@ -38,6 +38,7 @@ func SetupRoutes(providers []interface{}) *mux.Router {
 	rootRouter.HandleFunc("/login", createRouteHandler(auth.RouteAuthenticateUser, providers)).Methods("POST")
 	rootRouter.HandleFunc("/projects", createRouteHandler(projects.RouteListProjects, providers)).Methods("GET")
 	rootRouter.HandleFunc("/projects", createRouteHandler(projects.RouteCreateProject, providers)).Methods("POST")
+	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(projects.RouteUpdateProject, providers)).Methods("POST")
 	rootRouter.HandleFunc("/projects/{projectId}", createRouteHandler(projects.RouteGetProject, providers)).Methods("GET")
 
 	// Swagger
